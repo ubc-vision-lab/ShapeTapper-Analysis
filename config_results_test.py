@@ -48,37 +48,75 @@ config_indices = { #... here we go
     "e2_xpos":41,
     "e2_ypos":42,
     "e3_xpos":43,
-    "e4_ypos":44
+    "e3_ypos":44
 }
+
+demographic_indices = {
+    "uID":0,
+    "Gender":1,
+    "Handedness":2,
+    "Age":3,
+    "ScreenWidth":4,
+    "ScreenHeight":5,
+    "DPI":6,
+    "configFile":7
+}
+
+trial_result_indices = {
+    "trial_num":0,
+    "badflag":1,
+    "reaction_time":2,
+    "touch_x":3,
+    "touch_y":4
+}
+
+def getSubjectInfo(filepath):
+    demo_file = open(filepath, 'r')
+    return demo_file.readlines()[1].split(',') #hard coded second line
+    
+
 # given a valid config file, returns the list of trials.
 def getConfigLines(filepath):
     #open the file
+    f = open(filepath,'r')
+    configLines = [line.split(',') for line in f.readlines()]
+    return configLines, getBlockSizes(configLines)
     #split by line
     #return split
 
-#given the set of trials, gives the size of the block
-def getBlockSize(configLines):
+#given the set of trials, gives the size of every block
+def getBlockSizes(configLines):
+    previous_block = 1 # start at 1 cause never block 0
+    previous_trial_number = 1
+    trials_in_block = []
+    
     for line in configLines:
-
+        trial_number = int(line[config_indices['trialno']])
+        curr_block = int(line[config_indices['block']])
+        if previous_block != curr_block:
+            trials_in_block.append(previous_trial_number)
+            previous_block = curr_block
+        previous_trial_number = trial_number
+        
+    trials_in_block.append(trial_number)
+    return trials_in_block
 
 # given a block and trial number, grabs the appropriate trial from the experiment configuration
-# assumes that all blocks have the same number of trials
-def getTrial(block, trial, trials_per_config, exp_config):
-    #zero indexed
-    #index = (block-1)*trials_per_config + trial-1
-    #return exp_config[index]
+def getTrial(block, trial_number, block_sizes, exp_config):
+    index = sum(block_sizes[:block]) + trial_number - 1 #minus one because list is zero indexed
+    return exp_config[index]
 
 # given a trial, returns the target image name
 def getImageName(trial):
-    #return trial[index of image1]
+    return trial[config_indices['e1_image']]
 
 # given a trial, returns the rotation of the target image, in degrees
 def getRotation(trial):
-    #return float(trial[index of image1 rotation])
+    return float(trial[config_indices['e1_rotation']])
 
 #given the data from the shapetapper experiment, returns the list of valid data (badflag == 0)
 #essentially, it's getConfigLines where we skip the first row.
-def getData(filepath, subject_ID):
+def getData(filepath):
     #open file directory
     #grab the block data
     #initiate array
@@ -89,18 +127,27 @@ def getData(filepath, subject_ID):
     return null
 
 #given a row of data, checks if the row was good
+#maybe ignore this for now
 def goodResult(data):
-    #return trial[index of badflag]
+    return data[trial_result_indices['badflag']] == 0
 
 if __name__ == '__main__':
-    config_filename = "config.txt"
-    subject_ID = "something" #subject
+    
+    experiment, block_sizes = getConfigLines("solo_blake_8_64_1.txt")
+    print(block_sizes)
+    # subjectID = "" #argv?
+    # #maybe make this eval pwd?
+    # data_dir = "/" #some directory
+    # config_dir = "/" #some directory
+    
+    # demographic_file = subjectID + "_demographic.txt"
+    # subject_info = getSubjectInfo(demographic_file)
+    # experiment, block_sizes = getConfigLines(config_dir + demographic_info[demographic_indices['configFile']])
+    
+    # results_data = getData(data_dir, subjectID)
+    
+    # #all data has been acquired. time to stitch images together
+    
 
-    #maybe make this eval pwd?
-    data_dir = "" #some directory
-    config_dir = "" #some directory
-
-    subject_data = getData(data_dir, subject)
-
-    for data in subject_data:
-        fetchTrial(data[0], data[1],)
+    # for data in subject_data:
+        # fetchTrial(data[0], data[1],)
