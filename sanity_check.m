@@ -14,8 +14,18 @@ for i = 1:1 %numel(subjects)
     % grab the configs
     configurations = getConfigurations(config_file); % each row is a trial (sorry!), also it's in string (sorry!)
     for j = 1:length(configurations)
-        [events, block, trial] = getImageData(configurations{i});
-        composeImage(events,strcat(pwd,filesep,'images'),screen_w,screen_h);
+        [events, block, trial] = getImageData(configurations{j});
+        [trial_images, trial_alpha] = composeImage(events,strcat(pwd,filesep,'images'),screen_w,screen_h);
+        trial_background = imshow(255*ones(screen_h,screen_w,3,'uint8'));
+        hold on;
+        % add a point for where the touch occurred
+        margin = 3;
+        results{block,5}(trial)
+        results{block,4}(trial)
+        trial_images((screen_h - results{block,5}(trial)-margin):(screen_h - results{block,5}(trial)+margin),...
+            results{block,4}(trial)-margin:results{block,4}(trial)+margin,:) = 128 * ones(2*margin+1,2*margin+1,3,'uint8'); % some colour
+        trial_view = imshow(trial_images);
+        set(trial_view,'AlphaData',trial_alpha);
     end
     % generate the target image
     
