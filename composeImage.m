@@ -1,4 +1,4 @@
-function [image_overlay, alpha_mask] = composeImage(events,img_dir,screen_width, screen_height)
+function [image_overlay, alpha_mask] = composeImage(events,img_dir,screen_width, screen_height, dpi)
     x_padding = 300;
     y_padding = 300;
     image_files = getAllFiles(img_dir);
@@ -26,9 +26,11 @@ function [image_overlay, alpha_mask] = composeImage(events,img_dir,screen_width,
                     % background
                     [resized_rotated_y, resized_rotated_x,~] = size(resized_rotated_event);
                     
-                    event_x = events{i}{2}/100 * (screen_width - diag_max) + diag_max/2;
+                    world_to_pixels = screen_height/5/2; % emulating orthographic size (set to 5 in unity);
+                    border = 0;%dpi/world_to_pixels;
+                    event_x = events{i}{2}/100 * (screen_width - diag_max - border) + diag_max/2;
                     overlay_x = (1:resized_rotated_x)+(round(round(x_padding/2)+event_x-resized_rotated_x/2));
-                    event_y = events{i}{3}/100 * (screen_height - diag_max) + diag_max/2;
+                    event_y = events{i}{3}/100 * (screen_height - diag_max - border) + diag_max/2;
                     overlay_y = (1:resized_rotated_y)+(round(screen_height+round(y_padding/2)-event_y-resized_rotated_y/2));
                     
                     alpha_mask(overlay_y,overlay_x) = resized_rotated_alpha;

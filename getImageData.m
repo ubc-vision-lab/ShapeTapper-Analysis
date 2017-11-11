@@ -22,7 +22,4 @@ function [images, block, trial] = getImageData(trialConfig)
         end
     end
     images = images(~cellfun('isempty',images));
-    %create canvas
-    %overlay images with alpha
-    %return composition
 end

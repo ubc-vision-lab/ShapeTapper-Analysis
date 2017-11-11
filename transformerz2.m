@@ -1,49 +1,84 @@
 clear; clc;
 
-working_dir = pwd; % make sure this directory has /data, /images, and config.txt
-demographics_dir = '\demographics';
-output_dir = "output_dir";
+% pwd is the Present Working Directory (the folder you're in)
+% filesep is the OS agnostic separator
+% (UNIX-like (OSX, Linux) '/', Windows '\')
+demographics_dir = strcat(pwd,filesep,'demographics');
+images_dir = fullfile(pwd,'images');
+data_dir = fullfile(pwd,'data_new');
+config_dir = fullfile(pwd,'configs');
+per_trial_transformation = true;
+if per_trial_transformation
+    output_dir = 'results_trial';
+else
+    output_dir = 'results';
+end
+scaled = true;
+if scaled
+    output_dir = strcat(output_dir,'_scaled');
+end
+output_dir = fullfile(pwd,output_dir);
 
 nn = 1;
 
 %% scrape all subjects in the files
-subject_files = getAllFiles(strcat(working_dir, demographics_dir));
-subjects = cell(1,numel(subject_files));
-num_subjects = 1;
-for i = 1:numel(subject_files)
-    subject_id = strsplit(subject_files{i},'\');
-    subject_id = strsplit(subject_id{end},'_'); % file names always start with <subjectID>_<name>.txt
-    subject_id = subject_id{1};
-    if ~any(strcmp(subjects,subject_id)) % only add if it's not already there
-        subjects{num_subjects} = subject_id;
-        num_subjects = num_subjects + 1;
-    end
-end
-subjects(~cellfun('isempty',subjects)); % remove all empty cells
+subject_files = getAllSubjects(demographics_dir);
+subjects = {'Dgwm'};
 
-output = {};
-
+%% go through all subjects and grab the demographic data
 for j = 1:numel(subjects) % go through all subjects mined from above
     % potentially we can all every subject we've completed into a mat file
     % so we know what we've already finished.
+    output = {};
+    nn = 1;
     
     curr_subject = subjects{j};
 
     %scrape demo file
-    fileID = fopen(strcat(working_dir, demographics_dir, '\', curr_subject, '_demographic.txt'), 'r');
+    fileID = fopen(strcat(demographics_dir, filesep, curr_subject, '_demographic.txt'), 'r');
     demoData = textscan(fileID,'%s','Delimiter','\n');
     fclose(fileID);
-    demoData = demoData{1}; %header?
+    demoData = demoData{1}; % this gets all the rows
     temp = strsplit(demoData{2},','); % values
 
-    screen_w = str2num(temp{5}); %change to screen width of device
-    screen_h = str2num(temp{6}); %change to screen height of device
-    screen_dpi = str2num(temp{7}); %change to screen DPI of device
+    screen_w = str2double(temp{5}); %change to screen width of device
+    screen_h = str2double(temp{6}); %change to screen height of device
+    screen_dpi = str2double(temp{7}); %change to screen DPI of device
     config_file = temp{8}; %get config file for subject
+    border = 0;
 
+    %% get the touches
+    %go through all data files and collect the touches
+    dataList = getAllFiles(data_dir);
+    touchData = {};
+    touchData_map = containers.Map;
+    n=1;
+    for data = 1:numel(dataList)
+        subject_ID = getSubjectID(dataList{data});
+        block_num = str2double(filename{2});
+
+        if isempty(subject_ID)
+        elseif(subject_ID == curr_subject) % this matches the subject we're looking at
+            fileID = fopen(dataList{data});
+            trialData = textscan(fileID,'%s','Delimiter','\n'); % erm. by line? dunno why
+            fclose(fileID);
+            trialData = trialData{1}; % it's a layer deeper because of textscan so that we can split it
+            for trial = 2:numel(trialData) % actual data rows
+                temp = strsplit(trialData{trial},','); % split the data
+                if str2double(temp{2}) == 0
+                    % touch points from Unity are from bottom left corner
+                    % (Input.GetTouch(0).position)
+                    touchData{n} = [block_num, str2double(temp{1}), str2double(temp{4}), str2double(temp{5})]; %block, trial, x, y
+                    touchData_map(strcat(filename{2}, '+', temp{1})) = [str2double(temp{4}), str2double(temp{5})];
+                    n = n + 1;
+                end
+            end
+        end
+    end
+    
     %% grab all the images
     %grab all images
-    fileList = getAllFiles(strcat(working_dir, '\images'));
+    fileList = getAllFiles(images_dir);
     img_dict = containers.Map;
     %makes a dictionary containing all the shape files and their dimensions
     for image = 1:numel(fileList)
@@ -58,132 +93,105 @@ for j = 1:numel(subjects) % go through all subjects mined from above
 
     %% calculate transformation data through the configurations
     %go through the config file, then collect and calc transformation data
-    fileID = fopen(strcat(working_dir,'\configs\',config_file));
+    fileID = fopen(strcat(config_dir,filesep,config_file));
     allData = textscan(fileID,'%s','Delimiter','\n');
     fclose(fileID);
     allData = allData{1};
     trans_info = {};
 
+    % calculate the info for the images
+    % trans_info is the touch transformation data
     for line = 1:numel(allData)
         specs = strsplit(allData{line}, ',');
-        block = str2num(specs{1});
-        trial = str2num(specs{2});
-
-        x_pos = str2num(specs{15});
-        y_pos = str2num(specs{16});
-
-        if str2num(specs{21})
-            safety = str2num(specs{20});
-            rotation = str2num(specs{19});
+        block = str2double(specs{1});
+        trial = str2double(specs{2});
+        
+        event_info = {};
+        if(~isempty(specs{18}))
             shape = specs{18};
-        elseif str2num(specs{29})
-            safety = str2num(specs{28});
-            rotation = str2num(specs{34});
+            rotation = str2double(specs{19});
+            safety = str2double(specs{20});
+            img_dim = img_dict(shape);
+            event_info{1} = calculate_event_info(screen_w, screen_h, screen_dpi, safety, shape, img_dim, border, str2double(specs{15}), str2double(specs{16}), rotation );
+        end
+        if(~isempty(specs{26}))
             shape = specs{26};
-        else %35
-            safety = str2num(specs{36});
-            rotation = str2num(specs{35});
+            rotation = str2double(specs{27});
+            safety = str2double(specs{28});
+            img_dim = img_dict(shape);
+            event_info{2} = calculate_event_info(screen_w, screen_h, screen_dpi, safety, shape, img_dim, border, str2double(specs{42}), str2double(specs{43}), rotation );
+        end
+        if(~isempty(specs{34}))
             shape = specs{34};
+            rotation = str2double(specs{35});
+            safety = str2double(specs{36});
+            img_dim = img_dict(shape);
+            event_info{3} = calculate_event_info(screen_w, screen_h, screen_dpi, safety, shape, img_dim, border, str2double(specs{44}), str2double(specs{45}), rotation );
         end
-
-        new_screenH = screen_h * safety / 100;
-        dim = img_dict(shape);
-        diag = sqrt(dim(1)^2 + dim(2)^2);
-        toScale = diag / new_screenH; %toScale back up
-        diag = diag / toScale;
-
-        %border = screen_dpi * 0.375; %0.375 inches = ~ 1cm (so 5mm border around to screen)
-        border = screen_dpi; %0.375 inches = ~ 1cm (so 5mm border around to screen)
-
-        margin = screen_w - diag - border;
-        toShift = x_pos / 100 * margin;
-        shiftAmountX = toShift - (margin / 2);
-
-        margin = screen_h - diag - border;
-        toShift = y_pos / 100 * margin;
-        shiftAmountY = toShift - (margin / 2);
-
-        plusX = dim(1)/2;
-        plusY = dim(2)/2;
-
-        trans_info{block}{trial} = {toScale, -1 * shiftAmountX, -1 * shiftAmountY, 360-rotation, shape, plusX, plusY};
+        trans_info{block}{trial} = event_info;
 
     end
-
-    %% grab the touches
-    %go through all data files and collect the touches
-    dataList = getAllFiles(strcat(working_dir, '\data'));
-    touchData = {};
-    n=1;
-    for data = 1:numel(dataList)
-        filename = strsplit(dataList{data},'\');
-        filename = strsplit(filename{end},'.');
-        filename = strsplit(filename{1},'_');
-        subject_ID = filename{1};
-        block_num = str2num(filename{2});
-
-        if isempty(subject_ID)
-        elseif(subject_ID == curr_subject) % this matches the subject we're looking at
-            fileID = fopen(dataList{data});
-            trialData = textscan(fileID,'%s','Delimiter','\n');
-            fclose(fileID);
-            trialData = trialData{1};
-            for trial = 2:numel(trialData)
-                temp = strsplit(trialData{trial},',');
-                if str2num(temp{2}) == 0
-                    touchData{n} = [block_num, str2double(temp{1}), str2double(temp{4}), str2double(temp{5})]; %block, trial, x, y
-                    n = n + 1;
-                end
-            end
-        end
-    end
+   
 
     %% generate touch output
     for touch = 1:numel(touchData)
         block = touchData{touch}(1);
         trial = touchData{touch}(2);
-        x = touchData{touch}(3);
-        y = touchData{touch}(4);
-        toScale = trans_info{block}{trial}{1};
-        shiftAmountX = trans_info{block}{trial}{2};
-        shiftAmountY = trans_info{block}{trial}{3};
-        rotation = trans_info{block}{trial}{4};
-        shape_name = trans_info{block}{trial}{5};
-        plusX = trans_info{block}{trial}{6};
-        plusY = trans_info{block}{trial}{7};
-
-        x = x + shiftAmountX;
-        y = y + shiftAmountY;
-
-        x = x - screen_w/2;
-        y = y - screen_h/2;
         
-        x = x * toScale;
-        y = y * toScale;
-
-        x_old = x;
-
-        x = x * cosd(rotation) - y * sind(rotation);
-        y = x_old * sind(rotation) + y * cosd(rotation);
-
-        x = x + plusX;
-        y = y + plusY;
+        touchpoint = [touchData{touch}(3), touchData{touch}(4)];
+        image_relative_touchpoint = [0 0];
+        closest_distance = inf;
+        shape_name = '';
         
-        output{nn} = {subject_id, shape_name, x, y};
-        nn = nn + 1;
+%         touch = touchData_map(strcat(specs{1},'+',specs{2}));
+%         for event_position_index = 1:size(event_info,1)
+%         end
+        
+        % TODO: Change this to select the closest shape -- it's a deeper
+        % cell array than before!
+        for event = 1:size(trans_info{block}{trial},2)
+            toScale = trans_info{block}{trial}{event}{1};
+            shift = [trans_info{block}{trial}{event}{2} trans_info{block}{trial}{event}{3}];
+            rotation = trans_info{block}{trial}{event}{4};
+            plusX = trans_info{block}{trial}{event}{6};
+            plusY = trans_info{block}{trial}{event}{7};
+            
+            difference_vector = touchpoint + shift;
+            difference_vector = difference_vector - [screen_w/2, screen_h/2];
+            difference_vector = difference_vector * toScale;
+            distance = norm(difference_vector);
+            if(distance < sqrt(plusX^2 + plusY^2) && distance < closest_distance)
+                closest_distance = distance;
+                shape_name = trans_info{block}{trial}{event}{5};
+                difference_vector = difference_vector * toScale; % ????
+                R = [cosd(rotation) sind(rotation); -sind(rotation) cosd(rotation)];
+                image_relative_touchpoint = difference_vector * R;
+                image_relative_touchpoint = image_relative_touchpoint + [plusX, plusY];
+            end
+        end
+        if ~isempty(shape_name)
+            if(per_trial_transformation)
+                output{nn} = {curr_subject, shape_name, image_relative_touchpoint(1), image_relative_touchpoint(2), block, trial};
+            else
+                output{nn} = {curr_subject, shape_name, image_relative_touchpoint(1), image_relative_touchpoint(2)};
+            end
+            nn = nn + 1;
+        end
     end
     
     %% make directory and print outputs
     if ~(exist(output_dir,'file'))
-        mkdir output_dir;
+        mkdir(output_dir);
     end
-    strcat(working_dir,'\',output_dir,'\',curr_subject,'_results.txt')
-    fid = fopen(strcat(working_dir,'\',output_dir,'\',curr_subject,'_results.txt'),'w');
+    fid = fopen(strcat(output_dir,filesep,curr_subject,'_results.txt'),'w');
     for i = 1:length(output)
         %fprintf(fid, '%s\t%s\t%s\r\n',output{i}{2:4});
-        fprintf(fid, [num2str(output{i}{2}) '\t' num2str(output{i}{3}) '\t' num2str(output{i}{4}) '\r\n']);
+        if(per_trial_transformation)
+            fprintf(fid, [num2str(output{i}{2}) '\t' num2str(output{i}{3}) '\t' num2str(output{i}{4}) '\t' num2str(output{i}{5}) '\t' num2str(output{i}{6}) '\r\n']);
+        else
+            fprintf(fid, [num2str(output{i}{2}) '\t' num2str(output{i}{3}) '\t' num2str(output{i}{4}) '\r\n']);
+        end
     %     fprintf(fid, [output{i}{1} '\t' num2str(output{i}{2}) '\t' num2str(output{i}{3}) '\t' num2str(output{i}{4}) '\r\n']);
     end
     fclose(fid);
 end
-
