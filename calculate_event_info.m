@@ -5,15 +5,21 @@ function event_info = calculate_event_info(screen_w, screen_h, screen_dpi, safet
     img_diag = img_diag / toScale;
 
     border = screen_dpi * border_size_inches; %0.375 inches = ~ 1cm (so 5mm border around to screen)
-    border = screen_dpi/(screen_h/5/2); % don't ask
+    border = 0; %screen_dpi/(screen_h/5/2); % Camera.getOrthogonalSize = 5 (from Unity)
     
     margin = screen_w - img_diag - border;
     toShift = event_x * margin / 100;
-    shiftAmountX = toShift - (margin / 2);
+%     shiftAmountX = toShift - (margin / 2);
+%     shiftAmountX = round(toShift - (margin / 2));
+    shiftAmountX = toShift + (img_diag + border)/2; % gives us the absolute space
+%     shiftAmountX = round(toShift + (img_diag + border)/2); % gives us the absolute space
 
     margin = screen_h - img_diag - border;
     toShift = event_y * margin / 100;
-    shiftAmountY = toShift - (margin / 2);
+%     shiftAmountY = toShift - (margin / 2);
+%     shiftAmountY = round(toShift - (margin / 2));
+    shiftAmountY = toShift + (img_diag + border)/2;
+%     shiftAmountY = round(toShift + (img_diag + border)/2);
 
     plusX = img_dim(1)/2;
     plusY = img_dim(2)/2;

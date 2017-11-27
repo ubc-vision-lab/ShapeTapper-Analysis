@@ -6,7 +6,7 @@ clear; clc;
 
 base_dir = pwd; % change this to the directory you want. Everything assumed to be from here.
 subj_data_map = containers.Map;
-image_files = getAllFiles(fullfile(base_dir,'images_black'));
+image_files = getAllFiles(fullfile(base_dir,'images'));
 
 results_name = 'results';
 output_name = 'output_overlays';
@@ -16,9 +16,14 @@ if per_trial_images
     results_name = strcat(results_name,'_trial');
 end
 scaled = true;
+absolute = true;
 if scaled
     results_name = strcat(results_name,'_scaled');
     output_name = strcat(output_name,'_scaled');
+end
+if absolute
+    results_name = strcat(results_name,'_absolute');
+    output_name = strcat(output_name,'_absolute');
 end
 if(~exist(output_name,'dir'))
     mkdir(output_name);
@@ -26,10 +31,7 @@ end
 results_dir = fullfile(base_dir,results_name);
 output_dir = fullfile(base_dir,output_name);
 result_files = getAllFiles(results_dir);
-
-
-
-
+% result_files = {fullfile(results_dir,'test_results_old_rounded.txt')};
 
 %% get touch results
 
@@ -38,7 +40,7 @@ result_files = getAllFiles(results_dir);
 
 for i = 1:size(result_files)
     result_file = result_files{i};
-    if ( exist(result_file,'file') && contains(result_file,'results.txt') ) % it's a result file
+    if ( exist(result_file,'file') && contains(result_file,'results') ) % it's a result file
         subjectID = split(result_file,filesep);
         subjectID = subjectID(end);
         subjectID = split(subjectID,'_');
@@ -73,9 +75,6 @@ for k = keys(subj_data_map)
                 hold off
                 break;
             end
-            
-            
         end
     end
-        
 end

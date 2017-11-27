@@ -1,10 +1,13 @@
+% 17-11-22 Creates a set of images for each subjectID, where each image is
+% an event image overlaid with all touchpoints for that image.
+
 % read the results file
 % create the bins with all the indices
 % grab the image
 % winning?
 clear; clc;
 
-results_dir = fullfile(pwd,'results_x_scaled');
+results_dir = fullfile(pwd,'results_trial_scaled_absolute');
 demographics_dir = fullfile(pwd,'demographics');
 result_files = getAllFiles(results_dir);
 subj_data_map = containers.Map;
@@ -14,7 +17,7 @@ if(~exist(output_name,'dir'))
 end
 output_dir = fullfile(pwd,output_name);
 
-image_files = getAllFiles(fullfile(pwd,'images_black'));
+image_files = getAllFiles(fullfile(pwd,'images'));
 
 %% get touch results
 
@@ -64,7 +67,7 @@ for k = keys(subj_data_map)
         
         
         touch_rounded = round(subj_touch_data_srtd(imgkey{1}));
-        overlay = plot(touch_rounded(:,1), img_y-touch_rounded(:,2),'.');
+        overlay = plot(touch_rounded(:,1), img_y-touch_rounded(:,2),'.m');
         
 %         n = min(img_x,img_y);
 %         xi = linspace(0,img_x,n);

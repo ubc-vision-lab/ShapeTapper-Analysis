@@ -1,7 +1,8 @@
 function demographic_data = getDemographicData(filepath)
     fileID = fopen(filepath, 'r');
-    demoData = textscan(fileID,'%s','Delimiter','\n');
+    header_format_spec = '%s';
+    num_header_columns = 8;
+    demoHeaders = textscan(fileID, header_format_spec, num_header_columns, 'Delimiter',',');
+    demographic_data = textscan(fileID,'%s %s %s %d %d %d %d %s','Delimiter',',');
     fclose(fileID);
-    demoData = demoData{1}; % all the rows are in cell, get that one cell
-    demographic_data = strsplit(demoData{2},','); % values
 end

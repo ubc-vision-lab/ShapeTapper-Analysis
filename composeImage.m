@@ -14,7 +14,7 @@ function [image_overlay, alpha_mask] = composeImage(events,img_dir,screen_width,
                     [event,~,alpha] = imread(image_files{j},'BackgroundColor','none');
                     diag = norm([size(event,1),size(event,2)]);
                     diag_max = (screen_height * events{i,1}{5}) / 100;
-                    scale = diag_max / diag;
+                    scale = double(diag_max) / diag;
                     
                     % scale and rotate event, alpha channel
                     resized_event = imresize(event,scale);
@@ -28,10 +28,10 @@ function [image_overlay, alpha_mask] = composeImage(events,img_dir,screen_width,
                     
                     world_to_pixels = screen_height/5/2; % emulating orthographic size (set to 5 in unity);
                     border = 0;%dpi/world_to_pixels;
-                    event_x = events{i}{2}/100 * (screen_width - diag_max - border) + diag_max/2;
-                    overlay_x = (1:resized_rotated_x)+(round(round(x_padding/2)+event_x-resized_rotated_x/2));
-                    event_y = events{i}{3}/100 * (screen_height - diag_max - border) + diag_max/2;
-                    overlay_y = (1:resized_rotated_y)+(round(screen_height+round(y_padding/2)-event_y-resized_rotated_y/2));
+                    event_x = round(events{i}{2}/100 * (screen_width - diag_max - border)) + diag_max/2 + border/2;
+                    overlay_x = (1:resized_rotated_x)+double(round(round(x_padding/2)+event_x-resized_rotated_x/2));
+                    event_y = round(events{i}{3}/100 * (screen_height - diag_max - border)) + diag_max/2 + border/2;
+                    overlay_y = (1:resized_rotated_y)+double(round(screen_height+round(y_padding/2)-event_y-resized_rotated_y/2));
                     
                     alpha_mask(overlay_y,overlay_x) = resized_rotated_alpha;
                     image_overlay(overlay_y,overlay_x,:) = resized_rotated_event;

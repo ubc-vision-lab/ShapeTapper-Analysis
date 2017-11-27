@@ -3,27 +3,35 @@ clear; clc;
 % pwd is the Present Working Directory (the folder you're in)
 % filesep is the OS agnostic separator
 % (UNIX-like (OSX, Linux) '/', Windows '\')
-demographics_dir = strcat(pwd,filesep,'demographics');
-images_dir = fullfile(pwd,'images');
-data_dir = fullfile(pwd,'data_new');
-config_dir = fullfile(pwd,'configs');
+working_directory = pwd; % change this to whichever directory you want to work on
+demographics_dir = fullfile(working_directory,'demographics');
+images_dir = fullfile(working_directory,'images');
+data_dir = fullfile(working_directory,'data_new');
+config_dir = fullfile(working_directory,'configs');
+
 per_trial_transformation = true;
-if per_trial_transformation
-    output_dir = 'results_trial';
-else
-    output_dir = 'results';
-end
 scaled = true;
+absolute = true;
+output_dir = 'DF_results';
+if per_trial_transformation
+    output_dir = strcat(output_dir,'_trial');
+end
 if scaled
     output_dir = strcat(output_dir,'_scaled');
+end
+if absolute
+    output_dir = strcat(output_dir,'_absolute');
 end
 output_dir = fullfile(pwd,output_dir);
 
 nn = 1;
 
 %% scrape all subjects in the files
-subject_files = getAllSubjects(demographics_dir);
-subjects = {'Dgwm'};
+% subjects = getAllSubjects(demographics_dir);
+
+% grab subject IDs from a file
+subjects = textscan(fopen(fullfile(pwd,'Patient_2_IDs.txt')),'%s');
+subjects = subjects{1};
 
 %% go through all subjects and grab the demographic data
 for j = 1:numel(subjects) % go through all subjects mined from above
@@ -33,9 +41,12 @@ for j = 1:numel(subjects) % go through all subjects mined from above
     nn = 1;
     
     curr_subject = subjects{j};
+    if strcmp(curr_subject,'test')
+        nn = nn;
+    end
 
     %scrape demo file
-    fileID = fopen(strcat(demographics_dir, filesep, curr_subject, '_demographic.txt'), 'r');
+    fileID = fopen(fullfile(demographics_dir, strcat(curr_subject, '_demographic.txt')), 'r');
     demoData = textscan(fileID,'%s','Delimiter','\n');
     fclose(fileID);
     demoData = demoData{1}; % this gets all the rows
@@ -54,7 +65,10 @@ for j = 1:numel(subjects) % go through all subjects mined from above
     touchData_map = containers.Map;
     n=1;
     for data = 1:numel(dataList)
-        subject_ID = getSubjectID(dataList{data});
+        filename = strsplit(dataList{data},filesep);
+        filename = strsplit(filename{end},'.');
+        filename = strsplit(filename{1},'_');
+        subject_ID = filename{1};
         block_num = str2double(filename{2});
 
         if isempty(subject_ID)
@@ -85,7 +99,7 @@ for j = 1:numel(subjects) % go through all subjects mined from above
         image_data=imread(fileList{image});
 
         [height, width, ~] = size(image_data);
-        image_name = strsplit(fileList{image},'\');
+        image_name = strsplit(fileList{image},filesep);
         image_name = strsplit(image_name{end},'.');
         image_name = image_name{1};
         img_dict(image_name) = [width, height];
@@ -156,14 +170,13 @@ for j = 1:numel(subjects) % go through all subjects mined from above
             plusX = trans_info{block}{trial}{event}{6};
             plusY = trans_info{block}{trial}{event}{7};
             
-            difference_vector = touchpoint + shift;
-            difference_vector = difference_vector - [screen_w/2, screen_h/2];
-            difference_vector = difference_vector * toScale;
+            difference_vector = touchpoint + shift; %put touchpoint into image relative position
+%             difference_vector = difference_vector - [screen_w/2, screen_h/2]; % old math
+            difference_vector = difference_vector * toScale; % scale it to the spot relative to the original image
             distance = norm(difference_vector);
             if(distance < sqrt(plusX^2 + plusY^2) && distance < closest_distance)
                 closest_distance = distance;
                 shape_name = trans_info{block}{trial}{event}{5};
-                difference_vector = difference_vector * toScale; % ????
                 R = [cosd(rotation) sind(rotation); -sind(rotation) cosd(rotation)];
                 image_relative_touchpoint = difference_vector * R;
                 image_relative_touchpoint = image_relative_touchpoint + [plusX, plusY];
