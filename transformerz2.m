@@ -12,7 +12,7 @@ config_dir = fullfile(working_directory,'configs');
 per_trial_transformation = true;
 scaled = true;
 absolute = true;
-output_dir = 'DF_results';
+output_dir = 'results';
 if per_trial_transformation
     output_dir = strcat(output_dir,'_trial');
 end
@@ -27,11 +27,11 @@ output_dir = fullfile(pwd,output_dir);
 nn = 1;
 
 %% scrape all subjects in the files
-% subjects = getAllSubjects(demographics_dir);
+subjects = getAllSubjects(demographics_dir);
 
-% grab subject IDs from a file
-subjects = textscan(fopen(fullfile(pwd,'Patient_2_IDs.txt')),'%s');
-subjects = subjects{1};
+% % grab subject IDs from a file
+% subjects = textscan(fopen(fullfile(pwd,'Patient_2_IDs.txt')),'%s');
+% subjects = subjects{1};
 
 %% go through all subjects and grab the demographic data
 for j = 1:numel(subjects) % go through all subjects mined from above

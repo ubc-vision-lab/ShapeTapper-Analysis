@@ -1,3 +1,11 @@
+%%%%%%%%%%
+% getAllSubjects
+% 
+% Given a data directory, first part of the filename before the underscore
+% '_' character.
+% 
+%%%%%%%%%%
+
 function all_subs = getAllSubjects(directory)
     subject_files = getAllFiles(directory);
     all_subjects = cell(1,numel(subject_files));

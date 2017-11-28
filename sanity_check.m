@@ -21,8 +21,8 @@ for i = 1:numel(subjects)
     config_name = strsplit(config_file,'.');
     config_name = config_name{1};
     save_dir = fullfile(top_save_dir,strcat(subjects{i},'_',config_name));
-    % grab all the results
-    results = getSubjectResults(subjects{i},data_dir); % each row is a block, and the columns inside correspond to trials
+    % grab all the Data
+    results = getSubjectData(subjects{i},data_dir); % each row is a block, and the columns inside correspond to trials
     
     % grab the configs
     configurations = getConfigurations(config_file); % each row is a trial (sorry!), also it's in string (sorry!)
