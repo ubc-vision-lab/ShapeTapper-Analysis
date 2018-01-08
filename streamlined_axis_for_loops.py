@@ -227,7 +227,7 @@ if __name__ == '__main__':
 	# Draw Voronoi diagram
 	ma_lines = draw_voronoi(img_voronoi,subdiv,myCnt)
 
-
+	
 
 	import csv
 	import assist
@@ -270,15 +270,15 @@ if __name__ == '__main__':
 	print centroid_data
 	print np.shape(centroid_data)
 
-	# print this_shape
-	# print min_dists
-	# print centroid_dists
-	# text1 = 'Center (X, Y): '+ str(round(center_x, 2)) + ', ' + str(round(center_y, 2))
-	# std_axis_2 = 'Std Axis Numpy: ' + str(round(np.std(min_dists,ddof=1)))
-	# var_axis_2 = 'Var Axis Numpy: ' + str(round(np.var(min_dists,ddof=1)))
-	# print var_axis, var_axis_2, mse_axis, std_axis, std_axis_2
+	print this_shape
+	print min_dists
+	print centroid_dists
+	text1 = 'Center (X, Y): '+ str(round(center_x, 2)) + ', ' + str(round(center_y, 2))
+	std_axis_2 = 'Std Axis Numpy: ' + str(round(np.std(min_dists,ddof=1)))
+	var_axis_2 = 'Var Axis Numpy: ' + str(round(np.var(min_dists,ddof=1)))
+	print var_axis, var_axis_2, mse_axis, std_axis, std_axis_2
 
-	# print amd_centroid, mse_centroid
+	print amd_centroid, mse_centroid
 	
 	# fact = 'Branch Factor: ' + str(divvy)
 
@@ -287,10 +287,10 @@ if __name__ == '__main__':
 	# cv2.putText(img_voronoi, text3, (10,80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 0, 1)
 	# cv2.putText(img_voronoi, fact, (10,110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 0, 1)
 
-	# Show results
-	cv2.imshow(win_delaunay,img)
-	cv2.imshow(win_voronoi,img_voronoi)
-	cv2.waitKey(0)
+	# # Show results
+	# cv2.imshow(win_delaunay,img)
+	# cv2.imshow(win_voronoi,img_voronoi)
+	# cv2.waitKey(0)
 
 
 	# print 'Shape\tCentreX\tCenterY\tMSE-axis\tMSE-center\tBranching Factor'

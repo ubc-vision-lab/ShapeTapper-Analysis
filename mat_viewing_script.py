@@ -131,16 +131,21 @@ def draw_voronoi(img, subdiv, myCnt) :
 
 if __name__ == '__main__':
 
-	img_names = ["blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12","solo10","solo11","solo3","solo6","solo7","solo9"]
-	divvy = [18,22,11,18,10,16,21,21,19,10,1,5,1,9,15]
+	img_names = ["blake_01","blake_04"]#,"blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"] #,"solo10","solo11","solo3","solo6","solo7","solo9"]
+	# img_names = ["solo11"]
+	divvy = [18,22]#,11,18,10,16,21,21,19] #,10,19,5,1,9,15]
+	# divvy = [19]
+	patient = "DF"
 	shape_img = ["images_black/" + img_name + ".png" for img_name in img_names]
-	generated_files = ["./Patient_DF/" + img_name + "_Patient_DF_generated_results.mat" for img_name in img_names]
-	observed_files = ["./Patient_DF/" + img_name + "_Patient_DF_aggregated_observations.mat" for img_name in img_names]
+	generated_files = ["./"+patient+"/generated_results/1000/" + img_name + "_"+patient+"_generated_results.mat" for img_name in img_names]
+	observed_files = ["./Patient_"+patient+"/aggregated_observations/" + img_name + "_Patient_"+patient+"_aggregated_observations.mat" for img_name in img_names]
 	
-	print shape_img
+	print observed_files
 
  	super_matrix = zip(img_names,divvy,shape_img,generated_files,observed_files)
 
+ 	aggregate_ma = [];
+ 	aggregate_c = [];
  	for row in super_matrix:
  		print row
  		# Define colors for drawing.
@@ -213,7 +218,7 @@ if __name__ == '__main__':
 			myCnt += [[p[0],p[1]]]
 			subdiv.insert(p)
 
-	 
+	 	print "Drawing Delaunay"
 		# Draw delaunay triangles
 		draw_delaunay( img, subdiv, (255, 255, 255) );
 		# Draw points
@@ -222,14 +227,18 @@ if __name__ == '__main__':
 	 
 		# Allocate space for Voronoi Diagram
 		img_voronoi = np.zeros(img.shape, dtype = img.dtype)
-	 
+	 	
+	 	print "Drawing Voronoi"
 		# Draw Voronoi diagram
 		ma_lines = draw_voronoi(img_voronoi,subdiv,myCnt)
+		print np.shape(ma_lines)
+
+		sio.savemat('./Patient_'+patient+'/ma_c_values/' + row[0] + '_ma.mat',{'ma_lines':ma_lines});
+		sio.savemat('./Patient_'+patient+'/ma_c_values/' + row[0] + '_c.mat',{'centroid':centroid});
+
 
 
 		# let's start computing distances!
-		
-
 		# observed first. Faster.
 		observed_mat = sio.loadmat(row[4])
 		observed = observed_mat['img_dataset']
@@ -237,32 +246,32 @@ if __name__ == '__main__':
 		observed_medaxis_data = []
 		print np.shape(observed)
 
-		# distance utility function is three dimensional, so fill in the 'z' axis with zeros
+		# # distance utility function is three dimensional, so fill in the 'z' axis with zeros
 		filler = np.transpose([np.zeros(np.shape(observed)[0],dtype=int)]) # works as advertised
 		# filler works for both as the number of elements between the datasets is the same, but we can always make it
 		# recalculated if needed
-		observed_filled = np.concatenate((observed,filler),axis=1)
-		observed_min_dists = []
-		observed_centroid_dists = []
-		for observation in observed_filled:
-			min_dist = 999999
-			observed_centroid_dists += [assist.distance(observation,centroid)]
-			for line in ma_lines:
-				dist = assist.pnt2line(observation, np.append(line[0], 0), np.append(line[1], 0))[0]
+		# observed_filled = np.concatenate((observed,filler),axis=1)
+		# observed_min_dists = []
+		# observed_centroid_dists = []
+		# for observation in observed_filled:
+		# 	min_dist = 999999
+		# 	observed_centroid_dists += [assist.distance(observation,centroid)]
+		# 	for line in ma_lines:
+		# 		dist = assist.pnt2line(observation, np.append(line[0], 0), np.append(line[1], 0))[0]
 
-				if dist < min_dist:
-					min_dist = dist
-			observed_min_dists += [min_dist]
+		# 		if dist < min_dist:
+		# 			min_dist = dist
+		# 	observed_min_dists += [min_dist]
 
-		observed_medaxis_var = np.sum(np.power(observed_min_dists, 2))/(np.size(observed_min_dists)-1)
-		observed_medaxis_amd = np.mean(observed_min_dists)
-		observed_medaxis_data = [observed_medaxis_var, observed_medaxis_amd]
-		sio.savemat(row[0]+'medaxis.mat',{'observed_medaxis_data':observed_medaxis_data})
+		# observed_medaxis_var = np.sum(np.power(observed_min_dists, 2))/(np.size(observed_min_dists)-1)
+		# observed_medaxis_amd = np.mean(observed_min_dists)
+		# observed_medaxis_data = [observed_medaxis_var, observed_medaxis_amd]
+		# sio.savemat(row[0]+'medaxis.mat',{'observed_medaxis_data':observed_medaxis_data})
 
-		observed_centroid_var = np.sum(np.power(observed_centroid_dists, 2))/(np.size(observed_centroid_dists)-1)
-		observed_centroid_amd = np.mean(observed_centroid_dists)
-		observed_centroid_data = [observed_centroid_var, observed_centroid_amd]
-		sio.savemat(row[0]+'centroid.mat',{'observed_centroid_data':observed_centroid_data})
+		# observed_centroid_var = np.sum(np.power(observed_centroid_dists, 2))/(np.size(observed_centroid_dists)-1)
+		# observed_centroid_amd = np.mean(observed_centroid_dists)
+		# observed_centroid_data = [observed_centroid_var, observed_centroid_amd]
+		# sio.savemat(row[0]+'centroid.mat',{'observed_centroid_data':observed_centroid_data})
 
 
 
@@ -270,12 +279,17 @@ if __name__ == '__main__':
 		generated = generated_mat['img_datasets']
 		generated_centroid_data = []
 		generated_medaxis_data = []
+		count = 0
 		# this loop is for the generated data
+		filler = np.transpose([np.zeros(np.shape(generated)[1],dtype=int)]) # works as advertised
+		print np.shape(generated)
 		for result in generated:
 			result_filled = np.concatenate((result,filler),axis=1)
-
+			count += 1
 			generated_min_dists = []
 			generated_centroid_dists = []
+			if count % 10000 == 0:
+				print "getting distributions"
 			for touch in result_filled:
 				min_dist = 9999
 				generated_centroid_dists += [assist.distance(touch,centroid)]
@@ -293,15 +307,19 @@ if __name__ == '__main__':
 			# medaxis_mse = np.mean(np.power(generated_min_dists, 2))
 			# medaxis_std = np.sqrt(medaxis_var)
 			generated_medaxis_amd = np.mean(generated_min_dists)
-			generated_medaxis_data += [generated_medaxis_var, generated_medaxis_amd]
+			generated_medaxis_data.append((generated_medaxis_var, generated_medaxis_amd))
 
 			generated_centroid_var = np.sum(np.power(generated_centroid_dists, 2))/(np.size(generated_centroid_dists)-1)
 			generated_centroid_amd = np.mean(generated_centroid_dists)
-			generated_centroid_data += [generated_centroid_var, generated_centroid_amd]
+			generated_centroid_data.append((generated_centroid_var, generated_centroid_amd))
 
-		sio.savemat(row[0]+'generated_medaxis.mat',{'generated_medaxis_data':generated_medaxis_data})
-		sio.savemat(row[0]+'generated_centroid.mat',{'generated_centroid_data':generated_centroid_data})
-		print generated_medaxis_data
-		print np.shape(generated_medaxis_data)
-		print generated_centroid_data
-		print np.shape(generated_centroid_data)
+		print "saving file"
+		generated_medaxis_data = [list(datum) for datum in generated_medaxis_data]
+
+		generated_centroid_data = [list(datum) for datum in generated_centroid_data]
+		sio.savemat('./Patient_'+patient+'/'+ row[0]+'_ma.mat',{'generated_medaxis_data':generated_medaxis_data})
+		sio.savemat('./Patient_'+patient+'/'+ row[0]+'_c.mat',{'generated_centroid_data':generated_centroid_data})
+		# print generated_medaxis_data
+		# print np.shape(generated_medaxis_data)
+		# print generated_centroid_data
+		# print np.shape(generated_centroid_data)

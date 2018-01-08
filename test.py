@@ -3,6 +3,12 @@
 import cv2
 import numpy as np
 import random
+import csv
+import assist
+# import scipy.img_orig
+# import matplotlib.pyplot as plt
+# from matplotlib import cm
+# from mpl_toolkots.mplot3d import Axes3D
 
 
 def isWhite(point):
@@ -129,11 +135,13 @@ def draw_voronoi(img, subdiv, myCnt) :
 
 
 if __name__ == '__main__':
-	shape_img = "blake_01_black.png"
-	divvy = 10 # lower number = crazier medial axis
+
+
+	shape_img = "./images_black/solo11.png"
+	divvy = 19 # lower number = crazier medial axis
 
 	shape_anal = True
-	path = "oD4G_results.txt"
+	path = "./results_trial_scaled_absolute/tnKu_results.txt"
 
 	# Define window names
 	win_delaunay = "Delaunay Triangulation"
@@ -227,35 +235,26 @@ if __name__ == '__main__':
 	# Draw Voronoi diagram
 	ma_lines = draw_voronoi(img_voronoi,subdiv,myCnt)
 
-
+	print(np.shape(ma_lines))
 
 	long_dist = 0
 	for ld in ma_lines:
 		long_dist += ( (ld[0][0] - ld[1][0])**2 + (ld[0][1] - ld[1][1])**2 )**0.5
 
 
-	print("number of lines = ",len(ma_lines))
-	print("length of lines = ", long_dist)
-
-
-
-
-
-	import csv
-	import assist
-
-	#open the file with the results of the tapping with locations
+	# open the file with the results of the tapping with locations
 	with open(path) as f:
 	    reader = csv.reader(f, delimiter="\t")
 	    d = list(reader)
 	this_shape = []
 	for s in d:
-		if (s[0]+".png") == shape_img: # file match
+		if s[0]+".png" in shape_img: # file match
+			print 'Match!'
 			s_x = float(s[1]) #
 			s_y = (float(s[2])-size[0])*-1  # transformation of coordinates?
 			this_shape += [[s_x, s_y, 0]] # add to the set of taps for this shape
 			# cv2.circle(img_voronoi, (int(s_x), int(s_y)), 3, (0, 0, 0), cv2.cv.CV_FILLED, cv2.LINE_AA, 0)
-
+	print "This shape = " + str(this_shape)
 
 
 
@@ -272,7 +271,7 @@ if __name__ == '__main__':
 
 
 
-	# get the set of minimum distances for each image
+	# get the set of minimum distances for each imagenumel(subjects)
 	min_dists = []
 	center_dists = []
 	for touch in this_shape:
@@ -305,6 +304,8 @@ if __name__ == '__main__':
 
 
 	# print 'Shape\tCentreX\tCenterY\tMSE-axis\tMSE-center\tBranching Factor'
+	print min_dists
+	print center_dists
 	print(shape_img[:-4] + '\t' + str(round(center_x, 2))+ '\t' + str(round(center_y, 2)) + '\t' + str(round(np.average(np.power(min_dists, 2)), 2))+ '\t'+str(round(np.average(np.power(center_dists, 2)), 2))+'\t' + str(divvy))
 	print(text1)
 

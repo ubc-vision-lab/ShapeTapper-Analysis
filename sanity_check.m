@@ -1,9 +1,10 @@
 clear; clc;
 
 subjects = getAllSubjects(fullfile(pwd, 'demographics'));
+% subjects = {'qNGN'};
 % subjects = {'test'}; % 'test' is test data with a test configuration
-data_dir = fullfile(pwd, 'data_new'); % change this to the directory where the subject touch data is stored
-top_save_dir = fullfile(pwd, 'trial_images_2');
+data_dir = fullfile(pwd, 'data_5pcnt'); % change this to the directory where the subject touch data is stored
+top_save_dir = fullfile(pwd, 'trial_images_2_5pcnt_scaling');
 if ~exist(top_save_dir,'dir')
     mkdir(top_save_dir);
 end
@@ -68,7 +69,7 @@ for i = 1:numel(subjects)
         %show the figure
         trial_view = imshow(trial_images);
         hold on
-        plot(results{block,results_x}(trial),results{block,results_y}(trial),'ob');
+%         plot(results{block,results_x}(trial),results{block,results_y}(trial),'ob');
         set(trial_view,'AlphaData',trial_alpha);
         saveas(trial_view,save_name,'png')
         hold off;

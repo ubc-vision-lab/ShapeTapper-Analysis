@@ -67,7 +67,7 @@ for k = keys(subj_data_map)
         
         
         touch_rounded = round(subj_touch_data_srtd(imgkey{1}));
-        overlay = plot(touch_rounded(:,1), img_y-touch_rounded(:,2),'.m');
+        overlay = plot(touch_rounded(:,1), img_y-touch_rounded(:,2),'+m');
         
 %         n = min(img_x,img_y);
 %         xi = linspace(0,img_x,n);
