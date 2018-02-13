@@ -1,8 +1,9 @@
 clear; clc;
 
 subjects = getAllSubjects(fullfile(pwd,'demographics'));
-subjects = subjects(2:end); % ignore 4rD9 for now
-results_dir = fullfile(pwd,'data_new');
+% subjects = subjects(2:end); % ignore 4rD9 for now
+subjects = {'tnKu','R61e','VCEn','gbYj','4rD9','xVNn','hQx3','qNGN','mZDU'};
+results_dir = fullfile(pwd,'data_5pcnt');
 results_row = 4;
 results_col = 5;
 
