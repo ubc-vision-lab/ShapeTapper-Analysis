@@ -14,6 +14,9 @@ def isWhite(point):
 	
 	return img[y,x][0] == 255 and img[y,x][1] == 255 and img[y,x][2] == 255
 
+# Given a direction, gives the vector in pixel space
+# ultimately helps you look at all adjacent pixel
+# more like a next neighbor function in the counter-clockwise direction
 def nextCirc(y,x):
 
 	if y == -1 and x == -1:
@@ -46,6 +49,9 @@ def nextCirc(y,x):
 
 
 # finds the first white point that is not in points
+# takes in a pixel coordinate assumed to be black
+# returns transition (one black pixel one white pixel)
+# if there is no such pixel, returns last black pixel and false
 def nextpixel(black, point, points):
 	y=point[0]
 	x=point[1]
@@ -64,6 +70,8 @@ def nextpixel(black, point, points):
 	return black, False
  
 # Check if a point is inside a rectangle
+# Rectangle is array of four - two opposite corners
+# bottom right corner, 
 def rect_contains(rect, point) :
 	if point[0] < rect[0] :
 		return False
@@ -84,28 +92,32 @@ def draw_point(img, p, color ) :
 def draw_delaunay(img, subdiv, delaunay_color ) :
  
 	triangleList = subdiv.getTriangleList();
-	size = img.shape
-	r = (0, 0, size[1], size[0])
+	size = img.shape # dimensions of the image
+	r = (0, 0, size[1], size[0]) # rectangle defining the image size
  
 	for t in triangleList :
 		 
+		# Three triangles, 0,2,4 are x, 1,3,5 are y
 		pt1 = (t[0], t[1])
 		pt2 = (t[2], t[3])
 		pt3 = (t[4], t[5])
 		 
+		# if the entire triangle is inside the image, draw the triangle
 		if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
-		 
 			cv2.line(img, pt1, pt2, delaunay_color, 1, cv2.LINE_AA, 0)
 			cv2.line(img, pt2, pt3, delaunay_color, 1, cv2.LINE_AA, 0)
 			cv2.line(img, pt3, pt1, delaunay_color, 1, cv2.LINE_AA, 0)
  
  
 # Draw voronoi diagram
+# Given contour and subdiv, grabs all voronoi facets, and gets all adjacent pairs of points
+# which are in the shape. Draw lines between all point pairs.
 def draw_voronoi(img, subdiv, myCnt) :
 	size = img.shape
 	rect = np.array([[0,0], [0,size[0]], [size[1],size[0]], [size[1],0]])
 	cv2.fillConvexPoly(img, rect, (255,255,255), cv2.LINE_AA, 0)
 
+	# 
 	( facets, centers) = subdiv.getVoronoiFacetList([])
 	lines = []
 	
@@ -113,22 +125,22 @@ def draw_voronoi(img, subdiv, myCnt) :
 	
 	for i in xrange(0,len(facets)) :
 		for f in range(0,len(facets[i])) :
+			# checks if the pair of points (f, f+1) are in the contour, wrapping back around to the beginning
+			# if both points are in the contour, add them as a pair of points defining a line
 			if cv2.pointPolygonTest(np.array(myCnt), tuple(facets[i][f]), False) > 0 and cv2.pointPolygonTest(np.array(myCnt), tuple(facets[i][(f+1)%len(facets[i])]), False) > 0 :
 				lines.append([facets[i][f], facets[i][(f+1)%len(facets[i])]])
-
-
-
 
 		cv2.circle(img, (centers[i][0], centers[i][1]), 3, (0, 0, 0), cv2.FILLED, cv2.LINE_AA, 0)
 	
 	for l in lines:
+		# draw the lines you've processed above
 		cv2.line(img, tuple(l[0]), tuple(l[1]), (0,0,0), 1, cv2.LINE_AA)
 		# print l[0][0], l[0][1], l[1][0], l[1][1]
 	return lines
 
 
 
-
+# Beginning of script
 if __name__ == '__main__':
 
 	# img_names = ["blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12","solo10","solo11","solo3","solo6","solo7","solo9"]
@@ -138,8 +150,8 @@ if __name__ == '__main__':
 	divvy = [18,22,11,18,10,16,21,21,19,10] # blake shapes
 	# divvy = [10,1,5,1,9,15] # solo shapes
 	shape_img = ["images_black/" + img_name + ".png" for img_name in img_names]
-	generated_files = ["./Patient_MC/generated results/100k/" + img_name + "_Patient_MC_generated_results.mat" for img_name in img_names]
-	observed_files = ["./Patient_MC/aggregated observations/" + img_name + "_Patient_MC_aggregated_observations.mat" for img_name in img_names]
+	generated_files = ["./Patient_MC/generated_results/100k/" + img_name + "_Patient_MC_generated_results.mat" for img_name in img_names]
+	observed_files = ["./Patient_MC/aggregated_observations/" + img_name + "_Patient_MC_aggregated_observations.mat" for img_name in img_names]
 	
 	print shape_img
 
@@ -275,7 +287,7 @@ if __name__ == '__main__':
 		generated_centroid_data = []
 		generated_medaxis_data = []
 		# this loop is for the generated data
-		for result in generated[0:1000]:
+		for result in generated[0:10]:
 			result_filled = np.concatenate((result,filler),axis=1)
 
 			generated_min_dists = []
