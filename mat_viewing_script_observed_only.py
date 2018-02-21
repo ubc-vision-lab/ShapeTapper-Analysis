@@ -1,5 +1,5 @@
 #!/usr/bin/python
- 
+
 import cv2
 import numpy as np
 import random
@@ -11,7 +11,7 @@ import assist
 def isWhite(point):
 	y=point[0]
 	x=point[1]
-	
+
 	return img[y,x][0] == 255 and img[y,x][1] == 255 and img[y,x][2] == 255
 
 # Given a direction, gives the vector in pixel space
@@ -64,14 +64,14 @@ def nextpixel(black, point, points):
 			return black, newPoint
 		else:
 			black = [y+offset[0],x+offset[1]]
-	
-	
-	
+
+
+
 	return black, False
- 
+
 # Check if a point is inside a rectangle
 # Rectangle is array of four - two opposite corners
-# bottom right corner, 
+# bottom right corner,
 def rect_contains(rect, point) :
 	if point[0] < rect[0] :
 		return False
@@ -82,33 +82,33 @@ def rect_contains(rect, point) :
 	elif point[1] > rect[3] :
 		return False
 	return True
- 
+
 # Draw a point
 def draw_point(img, p, color ) :
 	cv2.circle( img, p, 2, color, cv2.FILLED, cv2.LINE_AA, 0 )
- 
- 
+
+
 # Draw delaunay triangles
 def draw_delaunay(img, subdiv, delaunay_color ) :
- 
+
 	triangleList = subdiv.getTriangleList();
 	size = img.shape # dimensions of the image
 	r = (0, 0, size[1], size[0]) # rectangle defining the image size
- 
+
 	for t in triangleList :
-		 
+
 		# Three triangles, 0,2,4 are x, 1,3,5 are y
 		pt1 = (t[0], t[1])
 		pt2 = (t[2], t[3])
 		pt3 = (t[4], t[5])
-		 
+
 		# if the entire triangle is inside the image, draw the triangle
 		if rect_contains(r, pt1) and rect_contains(r, pt2) and rect_contains(r, pt3) :
 			cv2.line(img, pt1, pt2, delaunay_color, 1, cv2.LINE_AA, 0)
 			cv2.line(img, pt2, pt3, delaunay_color, 1, cv2.LINE_AA, 0)
 			cv2.line(img, pt3, pt1, delaunay_color, 1, cv2.LINE_AA, 0)
- 
- 
+
+
 # Draw voronoi diagram
 # Given contour and subdiv, grabs all voronoi facets, and gets all adjacent pairs of points
 # which are in the shape. Draw lines between all point pairs.
@@ -117,12 +117,12 @@ def draw_voronoi(img, subdiv, myCnt) :
 	rect = np.array([[0,0], [0,size[0]], [size[1],size[0]], [size[1],0]])
 	cv2.fillConvexPoly(img, rect, (255,255,255), cv2.LINE_AA, 0)
 
-	# 
+	#
 	( facets, centers) = subdiv.getVoronoiFacetList([])
 	lines = []
-	
 
-	
+
+
 	for i in xrange(0,len(facets)) :
 		for f in range(0,len(facets[i])) :
 			# checks if the pair of points (f, f+1) are in the contour, wrapping back around to the beginning
@@ -131,7 +131,7 @@ def draw_voronoi(img, subdiv, myCnt) :
 				lines.append([facets[i][f], facets[i][(f+1)%len(facets[i])]])
 
 		cv2.circle(img, (centers[i][0], centers[i][1]), 3, (0, 0, 0), cv2.FILLED, cv2.LINE_AA, 0)
-	
+
 	for l in lines:
 		# draw the lines you've processed above
 		cv2.line(img, tuple(l[0]), tuple(l[1]), (0,0,0), 1, cv2.LINE_AA)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
 	shape_img = ["images_black/" + img_name + ".png" for img_name in img_names]
 	generated_files = ["./Patient_MC/generated_results/100k/" + img_name + "_Patient_MC_generated_results.mat" for img_name in img_names]
 	observed_files = ["./Patient_MC/aggregated_observations/" + img_name + "_Patient_MC_aggregated_observations.mat" for img_name in img_names]
-	
+
 	print shape_img
 
  	super_matrix = zip(img_names,divvy,shape_img,generated_files,observed_files)
@@ -162,39 +162,41 @@ if __name__ == '__main__':
  		# Define colors for drawing.
 		delaunay_color = (255,255,255)
 		points_color = (0, 0, 255)
-	 
+
 		# Read in the image.
 		img = cv2.imread(row[2],cv2.IMREAD_COLOR);
-		 
+
 		# Keep a copy around
 		img_orig = img.copy();
 
 		# Rectangle to be used with Subdiv2D
 		size = img.shape
-		rect = (0, 0, size[1], size[0])
-		 
+
+        # Compute the centroid of the (binary) image
+        whites = [0, 0]
+        white_count = 0 # make this a list of shapes - white counts
+        for y in range(0,size[0]): # size[0] is number of rows
+            for x in range(0,size[1]): # size[1] is number of columns
+                # consequently, size[2] is RGB
+                if isWhite([y, x]):
+                    whites[0] += y
+                    whites[1] += x
+                    white_count += 1
+        print white_count
+
+        centroid_y = whites[0]/white_count
+        centroid_x = whites[1]/white_count
+        centroid = [centroid_y, centroid_x,0]
+
+         rect = (0, 0, size[1], size[0])
 		# Create an instance of Subdiv2D
+        # initial points top left, bottom right corner of image
 		subdiv = cv2.Subdiv2D(rect);
 
 		# Create an array of points.
 		point = [size[0]/2,1]
 		points = []
 		black = [size[0]/2,0]
-
-		whites = [0, 0]
-		white_count = 0 # make this a list of shapes - white counts
-		for y in range(0,size[0]): # size[0] is number of rows
-			for x in range(0,size[1]): # size[1] is number of columns
-				# consequently, size[2] is RGB
-				if isWhite([y, x]):
-					whites[0] += y
-					whites[1] += x
-					white_count += 1
-		print white_count
-
-		centroid_y = whites[0]/white_count
-		centroid_x = whites[1]/white_count
-		centroid = [centroid_y, centroid_x,0]
 
 		while True: # go until you get to a white pixel
 			if isWhite(point):
@@ -204,7 +206,7 @@ if __name__ == '__main__':
 				black = point
 				point[1] += 1
 
-		while True: # find all 
+		while True: # find all
 			black, nextPoint =  nextpixel(black, point, points)
 
 			if nextPoint and not isWhite(black):
@@ -229,22 +231,22 @@ if __name__ == '__main__':
 			myCnt += [[p[0],p[1]]]
 			subdiv.insert(p)
 
-	 
+
 		# Draw delaunay triangles
 		draw_delaunay( img, subdiv, (255, 255, 255) );
 		# Draw points
 		for p in points :
 			draw_point(img, p, (0,0,255))
-	 
+
 		# Allocate space for Voronoi Diagram
 		img_voronoi = np.zeros(img.shape, dtype = img.dtype)
-	 
+
 		# Draw Voronoi diagram
 		ma_lines = draw_voronoi(img_voronoi,subdiv,myCnt)
 
 
 		# let's start computing distances!
-		
+
 
 		# observed first. Faster.
 		observed_mat = sio.loadmat(row[4])
@@ -260,12 +262,15 @@ if __name__ == '__main__':
 		# observed_filled = np.concatenate((observed,filler),axis=1)
 		# observed_min_dists = []
 		# observed_centroid_dists = []
+################################################################################
+        # JD 19/02/18 - from vectorization.py
+        # observed_min_dists = dist_to_lines(observed_filled,ma_lines)
+################################################################################        
 		# for observation in observed_filled:
 		# 	min_dist = 999999
 		# 	observed_centroid_dists += [assist.distance(observation,centroid)]
 		# 	for line in ma_lines:
 		# 		dist = assist.pnt2line(observation, np.append(line[0], 0), np.append(line[1], 0))[0]
-
 		# 		if dist < min_dist:
 		# 			min_dist = dist
 		# 	observed_min_dists += [min_dist]
