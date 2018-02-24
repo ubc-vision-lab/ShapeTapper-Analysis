@@ -1,26 +1,10 @@
 import numpy as np
 
-# def num(points):
-#     expd=np.expand_dims(points,2) #need another dimension...
-#     tiled=np.tile(expd, points.shape[0]) #...to tile up the vectors
-#     trans=np.transpose(points) #Also need to transpose the points matrix to fit well with broadcasting
-#     diff=trans-tiled           #doing the difference, exploiting Numpy broadcasting capabilities
-#     num=np.sum(np.square(diff), axis=1) #an then obtain the squared norm of the difference
-#     return num
-
-# takes an NxMx2 array of point-line segments (point - start)
-# and an Mx2 array of lines (end - start), returns NxM dot products
-def elementwise_dot(points,lines):
-    s = points.shape
-    r = np.empty(s[0],s[1])
-    for i in range(s0):
-        for j in range(s1):
-            r[i,j] = np.dot(points[i,j,:], lines[j,:])
-    return r
-
 # takes vectors of points and medial axis line segments, returns min distances
-# using numpy's matrix operations for optimal performance
-def dist_to_lines(points,lines):
+# points = np.array of points (points are lists of length 2)
+# lines  = np.array of pairs of points
+# NOTE: dist_to_lines takes and returns Numpy arrays, not lists.
+def dist_pts2lines(points,lines):
     starts = lines[:,0]
     ends = lines[:,1]
     line_segs =  ends - starts
@@ -34,18 +18,18 @@ def dist_to_lines(points,lines):
     point_segs = pts_tiled - starts_tiled
 
     # calculate dot products [(x1,y1).(x2,y2) = (x1x2+y1y2)]
-    line_segs_diag = numpy.diag(line_segs)
-    dots = ( np.matmul(point_segs(:,:,0),line_segs_diag(:,:,0)) + 
-                 np.matmul(point_segs(:,:,1),line_segs_diag(:,:,1)) ) 
-    #dots = elementwise_dot(point_segs, line_segs)
+    line_segs_diag_x = np.diag(line_segs[:,0])
+    line_segs_diag_y = np.diag(line_segs[:,1])
+    dots = ( np.matmul(point_segs[:,:,0],line_segs_diag_x) + 
+                 np.matmul(point_segs[:,:,1],line_segs_diag_y) ) 
     
     norms = np.linalg.norm(line_segs, axis=1)
     dn = np.tile(np.expand_dims(dots/norms,2),2) # tile to match point_segs
 
-    line_segs_exp = np.expand_dims(line_segs,2) # tile to match point_segs
-    line_segs_tiled = np.tile(line_segs_exp, points.shape[0]).transpose((2,0,1))
+    lsegs_exp = np.expand_dims(line_segs,2) # tile to match point_segs
+    lsegs_tiled = np.tile(lsegs_exp, points.shape[0]).transpose((2,0,1))
 
-    projections = line_segs_tiled * dn  # points projected onto line segs
+    projections = lsegs_tiled * dn  # points projected onto line segs
     distances = np.linalg.norm(point_segs-projections, axis=2)
 
-    return distances.min(axis=1).tolist()
+    return distances.min(axis=1) # min distance from each point to all lines

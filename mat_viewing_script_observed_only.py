@@ -261,11 +261,7 @@ if __name__ == '__main__':
 		# recalculated if needed
 		# observed_filled = np.concatenate((observed,filler),axis=1)
 		# observed_min_dists = []
-		# observed_centroid_dists = []
-################################################################################
-        # JD 19/02/18 - from vectorization.py
-        # observed_min_dists = dist_to_lines(observed_filled,ma_lines)
-################################################################################        
+		# observed_centroid_dists = []     
 		# for observation in observed_filled:
 		# 	min_dist = 999999
 		# 	observed_centroid_dists += [assist.distance(observation,centroid)]
