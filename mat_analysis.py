@@ -8,6 +8,7 @@ import scipy.io as sio
 import csv
 import assist
 import vectorization
+from timeit import default_timer as timer
 
 def isWhite(point):
 	y=point[0]
@@ -132,9 +133,9 @@ def draw_voronoi(img, subdiv, myCnt) :
 
 if __name__ == '__main__':
 
-	img_names = ["blake_01","blake_04"]#,"blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"] #,"solo10","solo11","solo3","solo6","solo7","solo9"]
+	img_names = ["blake_01"]#,"blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"] #,"solo10","solo11","solo3","solo6","solo7","solo9"]
 	# img_names = ["solo11"]
-	divvy = [18,22]#,11,18,10,16,21,21,19] #,10,19,5,1,9,15]
+	divvy = [18]#,22,11,18,10,16,21,21,19] #,10,19,5,1,9,15]
 	# divvy = [19]
 	patient = "DF"
 	shape_img = ["Blake/" + img_name + ".png" for img_name in img_names]
@@ -248,7 +249,9 @@ if __name__ == '__main__':
 		observed_medaxis_data = []
 		print np.shape(observed)
 
+		start_time = timer()
 		observed_min_dists = vectorization.dist_pts2lines(observed,ma_lines)
+		print (timer() - start_time)*1000, ' ms'
 		print np.shape(observed_min_dists)
 
 		# # distance utility function is three dimensional, so fill in the 'z' axis with zeros
@@ -286,9 +289,13 @@ if __name__ == '__main__':
 		generated_medaxis_data = []
 		print np.shape(generated)
 
-		generated_min_dists = vectorization.dist_pts2lines(generated,ma_lines)
+		#generated_min_dists = np.zeros(generated.shape)
+		#for idx, point_set in enumerate(generated) :
+		start_time = timer()
+		generated_min_dists = vectorization.dist_pts2lines_4d(generated,ma_lines)
 		print np.shape(generated_min_dists)
-
+		print (timer() - start_time)*1000, ' ms'
+		print np.shape(generated_min_dists)
 		# count = 0
 		# # this loop is for the generated data
 		# filler = np.transpose([np.zeros(np.shape(generated)[1],dtype=int)]) # works as advertised
