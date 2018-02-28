@@ -7,6 +7,7 @@ import pdb
 import scipy.io as sio
 import csv
 import assist
+from numba import vectorize, cuda
 import vectorization
 from timeit import default_timer as timer
 
@@ -60,7 +61,7 @@ def nextpixel(black, point, points):
 			return black, newPoint
 		else:
 			black = [y+offset[0],x+offset[1]]
-	print False
+	print "Exception at point", point
 	return black, False
  
 
@@ -133,23 +134,29 @@ def draw_voronoi(img, subdiv, myCnt) :
 
 if __name__ == '__main__':
 
-	img_names = ["blake_01"]#,"blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"] #,"solo10","solo11","solo3","solo6","solo7","solo9"]
+	img_names = ["blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"] #,"solo10","solo11","solo3","solo6","solo7","solo9"]
 	# img_names = ["solo11"]
-	divvy = [18]#,22,11,18,10,16,21,21,19] #,10,19,5,1,9,15]
+	divvy = [18,22,11,18,10,16,21,21,19] #,10,19,5,1,9,15]
 	# divvy = [19]
 	patient = "DF"
 	shape_img = ["Blake/" + img_name + ".png" for img_name in img_names]
 	generated_files = ["./"+patient+"/generated_results/1000/" + img_name + "_Patient_"+patient+"_generated_results.mat" for img_name in img_names]
 	observed_files = ["./"+patient+"/aggregated_observations/" + img_name + "_Patient_"+patient+"_aggregated_observations.mat" for img_name in img_names]
 	
-	print observed_files
+	#print observed_files
+	np.seterr(divide='ignore', invalid='ignore')
 
  	super_matrix = zip(img_names,divvy,shape_img,generated_files,observed_files)
 
  	aggregate_ma = [];
  	aggregate_c = [];
+
+ 	global_start = timer()
  	for row in super_matrix:
- 		print row
+ 		if row[0] != "blake_10": continue
+ 		print "Starting", row[0]
+ 		start_row = timer()
+ 		#print row
  		# Define colors for drawing.
 		delaunay_color = (255,255,255)
 		points_color = (0, 0, 255)
@@ -221,7 +228,7 @@ if __name__ == '__main__':
 			myCnt += [[p[0],p[1]]]
 			subdiv.insert(p)
 
-	 	print "Drawing Delaunay"
+	 	#print "Drawing Delaunay"
 		# Draw delaunay triangles
 		draw_delaunay( img, subdiv, (255, 255, 255) );
 		# Draw points
@@ -231,28 +238,28 @@ if __name__ == '__main__':
 		# Allocate space for Voronoi Diagram
 		img_voronoi = np.zeros(img.shape, dtype = img.dtype)
 	 	
-	 	print "Drawing Voronoi"
+	 	#print "Drawing Voronoi"
 		# Draw Voronoi diagram
 		ma_lines = draw_voronoi(img_voronoi,subdiv,myCnt)
-		print np.shape(ma_lines)
+		#print np.shape(ma_lines)
 		ma_lines = np.array(ma_lines)
 
 		# sio.savemat('./Patient_'+patient+'/ma_c_values/' + row[0] + '_ma.mat',{'ma_lines':ma_lines});
 		# sio.savemat('./Patient_'+patient+'/ma_c_values/' + row[0] + '_c.mat',{'centroid':centroid});
 
-		print "Calculating Observed"
+		#print "Calculating Observed"
 		# let's start computing distances!
 		# observed first. Faster.
 		observed_mat = sio.loadmat(row[4])
 		observed = observed_mat['img_dataset']
 		observed_centroid_data = []
 		observed_medaxis_data = []
-		print np.shape(observed)
+		#print np.shape(observed)
 
 		start_time = timer()
 		observed_min_dists = vectorization.dist_pts2lines(observed,ma_lines)
-		print (timer() - start_time)*1000, ' ms'
-		print np.shape(observed_min_dists)
+		print "Observed: ",(timer() - start_time)*1000, 'ms'
+		#print np.shape(observed_min_dists)
 
 		# # distance utility function is three dimensional, so fill in the 'z' axis with zeros
 		# filler = np.transpose([np.zeros(np.shape(observed)[0],dtype=int)]) # works as advertised
@@ -282,20 +289,25 @@ if __name__ == '__main__':
 		# # sio.savemat(row[0]+'centroid.mat',{'observed_centroid_data':observed_centroid_data})
 
 
-		print "Calculating Generated"
+		#print "Calculating Generated"
 		generated_mat = sio.loadmat(row[3])
 		generated = generated_mat['img_datasets']
 		generated_centroid_data = []
 		generated_medaxis_data = []
-		print np.shape(generated)
+		#print np.shape(generated)
 
 		#generated_min_dists = np.zeros(generated.shape)
 		#for idx, point_set in enumerate(generated) :
+		generated_min_dists = np.empty((generated.shape[0],generated.shape[1]))
 		start_time = timer()
-		generated_min_dists = vectorization.dist_pts2lines_4d(generated,ma_lines)
-		print np.shape(generated_min_dists)
-		print (timer() - start_time)*1000, ' ms'
-		print np.shape(generated_min_dists)
+		for i in range(generated.shape[0]) :
+		    generated_min_dists[i] = vectorization.dist_pts2lines(generated[i],ma_lines)
+		print "Generated: ",(timer() - start_time), 's'
+
+		print "Time to complete" , row[0] , ':' ,(timer() - start_row), 's\n'
+
+	print "Total time:" ,(timer() - global_start), 's\n'
+		#print generated_min_dists.shape
 		# count = 0
 		# # this loop is for the generated data
 		# filler = np.transpose([np.zeros(np.shape(generated)[1],dtype=int)]) # works as advertised
