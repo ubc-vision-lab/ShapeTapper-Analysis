@@ -144,6 +144,7 @@ if __name__ == '__main__':
 
     #global_start = timer()
     for row in super_matrix:
+        if row[0]!='blake_01': continue
         print "Starting", row[0]
         #start_row = timer()
         #print row
@@ -202,7 +203,7 @@ if __name__ == '__main__':
                 points += [point]
             else:
                 break
-
+        print len(points)
         count = 0
         temp_points = []
         for point in points:
@@ -210,7 +211,8 @@ if __name__ == '__main__':
             if count % row[1] == 0:
                 temp_points += [tuple([point[1],point[0]])]
         points = temp_points
-
+        print len(points)
+        break
         # Insert points into subdiv
         myCnt = []
         for p in points :
@@ -254,15 +256,12 @@ if __name__ == '__main__':
         observed_centroid_data = [observed_centroid_var, observed_centroid_amd]
         sio.savemat(out_path+row[0]+'_centroid_new.mat',{'observed_centroid_data':observed_centroid_data})
 
-
         #print "Calculating Generated"
         generated_mat = sio.loadmat(row[3])
         generated = generated_mat['img_datasets']
         generated_centroid_data = []
         generated_medaxis_data = []
 
-        #generated_min_dists = np.zeros(generated.shape)
-        #for i in range(generated.shape[0]) :
         generated_min_dists = np.empty((generated.shape[0],generated.shape[1]))
         generated_centroid_dists = np.empty((generated.shape[0],generated.shape[1]))
         #start_time = timer()
