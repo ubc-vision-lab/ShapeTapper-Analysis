@@ -64,20 +64,22 @@ for j = 1:numel(subjects) % go through all subjects mined from above
     touchData = {};
     touchData_map = containers.Map;
     n=1;
-    for data = 1:numel(dataList)
-        filename = strsplit(dataList{data},filesep);
+    for data = 1:numel(dataList) % All data files in the folder
+        filename = strsplit(dataList{data},filesep); % data files are formatted as '<subject_ID>_<block_num>.txt' (no angle braces)
         filename = strsplit(filename{end},'.');
         filename = strsplit(filename{1},'_');
         subject_ID = filename{1};
         block_num = str2double(filename{2});
 
-        if isempty(subject_ID)
+        if isempty(subject_ID) % the filename started with an underscore?
+            continue
         elseif(subject_ID == curr_subject) % this matches the subject we're looking at
             fileID = fopen(dataList{data});
+            % this section can likely be replaced by readtable()
             trialData = textscan(fileID,'%s','Delimiter','\n'); % erm. by line? dunno why
             fclose(fileID);
             trialData = trialData{1}; % it's a layer deeper because of textscan so that we can split it
-            for trial = 2:numel(trialData) % actual data rows
+            for trial = 2:numel(trialData) % actual data rows, first row is headers
                 temp = strsplit(trialData{trial},','); % split the data
                 if str2double(temp{2}) == 0
                     % touch points from Unity are from bottom left corner
