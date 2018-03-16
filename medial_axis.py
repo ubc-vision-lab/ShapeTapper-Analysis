@@ -423,27 +423,6 @@ if __name__ == '__main__':
 #        cv2.waitKey(0)
 #        cv2.destroyAllWindows()
 #        break
-            
-#ima_pts = np.where(img_ima_bin==1)
-#ima_pts = np.array(ima_pts)
-#ima_pts = np.transpose(ima_pts)
-#ima_pts = np.flip(ima_pts, axis=1) - [offset,offset]
-#ima_points = ima_pts
-#img = cv2.imread(row[2],cv2.IMREAD_UNCHANGED)
-## Convert alpha transparency to black
-#img[(img[:,:,3]==0),0:3] = 0
-## Keep a copy around
-#img_orig = img.copy();
-#for p in ima_points :
-#    cv2.circle( img_orig, tuple(p), 1, (255,0,0,255) ) 
-#for e in edge_points :
-#    cv2.circle( img_orig, tuple(e), 1, (0,0,255,255) ) 
-#cv2.circle( img_orig, tuple(centroid), 4, (0,255,0,255) ) 
-#
-#cv2.namedWindow('image', cv2.WINDOW_NORMAL)
-#cv2.imshow('image', img_orig)
-#cv2.waitKey(0)
-#cv2.destroyAllWindows()
 
         # Save a copy of the image
         cv2.imwrite(out_path + row[0] + '_ma.png',img_orig)
