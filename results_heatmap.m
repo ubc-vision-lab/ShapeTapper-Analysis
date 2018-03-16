@@ -32,7 +32,8 @@ for i = 1:size(result_files)
         subjectID = split(subjectID,'_');
         subjectID = subjectID{1}; % this is the actual subject ID
         result_fid = fopen(result_file);
-        subj_data_map(subjectID) = textscan(result_fid,'%s %f %f %d %d'); % readtable is slow
+        result = textscan(result_fid,'%s %f %f %d %d'); % readtable is slow
+        subj_data_map(subjectID) = result;
         fclose(result_fid);
     end
 end
@@ -61,7 +62,7 @@ for k = keys(subj_data_map)
                 image = imread(image_files{j});
                 shown_img = imshow(image_files{j});
                 hold on;
-                [img_y, img_x, ~] = size(image);
+                 [img_y, img_x, ~] = size(image);
             end
         end
         

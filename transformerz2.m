@@ -6,12 +6,16 @@ clear; clc;
 working_directory = pwd; % change this to whichever directory you want to work on
 demographics_dir = fullfile(working_directory,'demographics');
 images_dir = fullfile(working_directory,'images');
-data_dir = fullfile(working_directory,'data_new');
+data_dir = fullfile(working_directory,'data_5pcnt');
 config_dir = fullfile(working_directory,'configs');
+% todo:
+% use uigetdir to choose directory for a subject
+% create folder with results and image overlay, for each experiment,
+% and for each image across all experiments
 
-per_trial_transformation = true;
-scaled = true;
-absolute = true;
+per_trial_transformation = true; % Gives the block and trial number in the results
+scaled = true; % this was to correct the touchpoint deviation
+absolute = true; 
 output_dir = 'results';
 if per_trial_transformation
     output_dir = strcat(output_dir,'_trial');
@@ -41,11 +45,9 @@ for j = 1:numel(subjects) % go through all subjects mined from above
     nn = 1;
     
     curr_subject = subjects{j};
-    if strcmp(curr_subject,'test')
-        nn = nn;
-    end
 
     %scrape demo file
+    % get resolution of unity window, dpi, configuration file used
     fileID = fopen(fullfile(demographics_dir, strcat(curr_subject, '_demographic.txt')), 'r');
     demoData = textscan(fileID,'%s','Delimiter','\n');
     fclose(fileID);
@@ -56,17 +58,19 @@ for j = 1:numel(subjects) % go through all subjects mined from above
     screen_h = str2double(temp{6}); %change to screen height of device
     screen_dpi = str2double(temp{7}); %change to screen DPI of device
     config_file = temp{8}; %get config file for subject
-    border = 0;
+    border = 0;  % margin in inches from edge of screen
 
     %% get the touches
     %go through all data files and collect the touches
-    dataList = getAllFiles(data_dir);
+    dataFileList = getAllFiles(data_dir); % full filepath
     touchData = {};
     touchData_map = containers.Map;
-    n=1;
-    for data = 1:numel(dataList) % All data files in the folder
-        filename = strsplit(dataList{data},filesep); % data files are formatted as '<subject_ID>_<block_num>.txt' (no angle braces)
-        filename = strsplit(filename{end},'.');
+    trial_count=0;
+    
+    % Aggregate subject results into one data structure
+    for dataFile = 1:numel(dataFileList) % All data files in the folder
+        filename = strsplit(dataFileList{dataFile},filesep); % because these are full filenames we have to split it
+        filename = strsplit(filename{end},'.'); % data files are formatted as '<subject_ID>_<block_num>.txt' (no angle braces)
         filename = strsplit(filename{1},'_');
         subject_ID = filename{1};
         block_num = str2double(filename{2});
@@ -74,19 +78,20 @@ for j = 1:numel(subjects) % go through all subjects mined from above
         if isempty(subject_ID) % the filename started with an underscore?
             continue
         elseif(subject_ID == curr_subject) % this matches the subject we're looking at
-            fileID = fopen(dataList{data});
+            fileID = fopen(dataFileList{dataFile});
             % this section can likely be replaced by readtable()
             trialData = textscan(fileID,'%s','Delimiter','\n'); % erm. by line? dunno why
             fclose(fileID);
             trialData = trialData{1}; % it's a layer deeper because of textscan so that we can split it
             for trial = 2:numel(trialData) % actual data rows, first row is headers
                 temp = strsplit(trialData{trial},','); % split the data
-                if str2double(temp{2}) == 0
+                if str2double(temp{2}) == 0 % was this a good trial?
                     % touch points from Unity are from bottom left corner
                     % (Input.GetTouch(0).position)
-                    touchData{n} = [block_num, str2double(temp{1}), str2double(temp{4}), str2double(temp{5})]; %block, trial, x, y
+                    trial_count = trial_count + 1; % counts number of datapoints
+                    touchData{trial_count} = [block_num, str2double(temp{1}), str2double(temp{4}), str2double(temp{5})]; %block, trial, x, y
                     touchData_map(strcat(filename{2}, '+', temp{1})) = [str2double(temp{4}), str2double(temp{5})];
-                    n = n + 1;
+                    
                 end
             end
         end
@@ -123,26 +128,26 @@ for j = 1:numel(subjects) % go through all subjects mined from above
         trial = str2double(specs{2});
         
         event_info = {};
-        if(~isempty(specs{18}))
-            shape = specs{18};
-            rotation = str2double(specs{19});
-            safety = str2double(specs{20});
+        if(~isempty(specs{18})) % stimulus/event 1
+            shape = specs{18}; % name of the shape
+            rotation = str2double(specs{19}); % rotation counter-clockwise
+            scaling = str2double(specs{20}); % percentage of window height
             img_dim = img_dict(shape);
-            event_info{1} = calculate_event_info(screen_w, screen_h, screen_dpi, safety, shape, img_dim, border, str2double(specs{15}), str2double(specs{16}), rotation );
-        end
-        if(~isempty(specs{26}))
+            event_info{1} = CalculateEventInfo(screen_w, screen_h, screen_dpi, scaling, shape, img_dim, border, str2double(specs{15}), str2double(specs{16}), rotation );
+        end 
+        if(~isempty(specs{26})) % stimulus/event 2
             shape = specs{26};
             rotation = str2double(specs{27});
-            safety = str2double(specs{28});
+            scaling = str2double(specs{28});
             img_dim = img_dict(shape);
-            event_info{2} = calculate_event_info(screen_w, screen_h, screen_dpi, safety, shape, img_dim, border, str2double(specs{42}), str2double(specs{43}), rotation );
+            event_info{2} = CalculateEventInfo(screen_w, screen_h, screen_dpi, scaling, shape, img_dim, border, str2double(specs{42}), str2double(specs{43}), rotation );
         end
-        if(~isempty(specs{34}))
+        if(~isempty(specs{34})) % stimulus/event 3
             shape = specs{34};
             rotation = str2double(specs{35});
-            safety = str2double(specs{36});
+            scaling = str2double(specs{36});
             img_dim = img_dict(shape);
-            event_info{3} = calculate_event_info(screen_w, screen_h, screen_dpi, safety, shape, img_dim, border, str2double(specs{44}), str2double(specs{45}), rotation );
+            event_info{3} = CalculateEventInfo(screen_w, screen_h, screen_dpi, scaling, shape, img_dim, border, str2double(specs{44}), str2double(specs{45}), rotation );
         end
         trans_info{block}{trial} = event_info;
 
@@ -163,34 +168,44 @@ for j = 1:numel(subjects) % go through all subjects mined from above
 %         for event_position_index = 1:size(event_info,1)
 %         end
         
-        % TODO: Change this to select the closest shape -- it's a deeper
-        % cell array than before!
+        % go through every stimulus
         for event = 1:size(trans_info{block}{trial},2)
-            toScale = trans_info{block}{trial}{event}{1};
-            shift = [trans_info{block}{trial}{event}{2} trans_info{block}{trial}{event}{3}];
+            % grab info we calculated in CalculateEventInfo()
+            scale_factor = trans_info{block}{trial}{event}{1};
+            unity_stimulus_position = [trans_info{block}{trial}{event}{2} trans_info{block}{trial}{event}{3}];
             rotation = trans_info{block}{trial}{event}{4};
             plusX = trans_info{block}{trial}{event}{6};
             plusY = trans_info{block}{trial}{event}{7};
             
-            difference_vector = touchpoint + shift; %put touchpoint into image relative position
-%             difference_vector = difference_vector - [screen_w/2, screen_h/2]; % old math
-            difference_vector = difference_vector * toScale; % scale it to the spot relative to the original image
-            distance = norm(difference_vector);
-            if(distance < sqrt(plusX^2 + plusY^2) && distance < closest_distance)
-                closest_distance = distance;
-                shape_name = trans_info{block}{trial}{event}{5};
+            % TODO: fix distance bug from scaling
+            % calculate distances in Unity space first?
+            unity_difference_vector = touchpoint - unity_stimulus_position; %put touchpoint into image relative position
+            raw_difference_vector = unity_difference_vector * scale_factor; % scale it to the spot relative to the original image
+            
+            % Distance to centre of image, in image space
+            dist_to_centre = norm(raw_difference_vector);
+            if(dist_to_centre < norm([plusX plusY]) && dist_to_centre < closest_distance) % it's inside the image
+                closest_distance = dist_to_centre;
+                shape_name = trans_info{block}{trial}{event}{5}; % this is the shape it touched
                 R = [cosd(rotation) sind(rotation); -sind(rotation) cosd(rotation)];
-                image_relative_touchpoint = difference_vector * R;
+                image_relative_touchpoint = raw_difference_vector * R;
                 image_relative_touchpoint = image_relative_touchpoint + [plusX, plusY];
             end
         end
-        if ~isempty(shape_name)
+        if ~isempty(shape_name) % if the touchpoint falls on an image
             if(per_trial_transformation)
                 output{nn} = {curr_subject, shape_name, image_relative_touchpoint(1), image_relative_touchpoint(2), block, trial};
             else
                 output{nn} = {curr_subject, shape_name, image_relative_touchpoint(1), image_relative_touchpoint(2)};
             end
             nn = nn + 1;
+        else
+%             if(per_trial_transformation)
+%                 output{nn} = {curr_subject, shape_name, NaN, NaN, block, trial};
+%             else
+%                 output{nn} = {curr_subject, '', NaN, NaN};
+%             end
+%             nn = nn + 1;
         end
     end
     

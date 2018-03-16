@@ -1,6 +1,6 @@
 clear; clc;
 
-subjects = getAllSubjects(fullfile(pwd, 'demographics'));
+subjects = getAllUIDs(fullfile(pwd, 'demographics'));
 % subjects = {'qNGN'};
 % subjects = {'test'}; % 'test' is test data with a test configuration
 data_dir = fullfile(pwd, 'data_5pcnt'); % change this to the directory where the subject touch data is stored
@@ -30,8 +30,8 @@ for i = 1:numel(subjects)
     if ~exist(save_dir,'dir')
         mkdir(save_dir);
     end
-    for j = 1:length(configurations)
-        [events, block, trial] = getImageData(configurations{j});
+    for j = 1:length(configurations) % go through every trial configuration
+        [events, block, trial] = GetImageData(configurations{j}); % events show up in order of appearance in the config file (can have e1 be empty)
         save_name = fullfile(save_dir,strcat(subjects{i},'_',num2str(block),'_',num2str(trial)));
         if exist(save_name,'file') % file already exists, just keep going
             continue;
@@ -39,10 +39,7 @@ for i = 1:numel(subjects)
         if block > size(results,1)
             break;
         end
-        % we've already made this image, next image
-%         if exist(strcat(pwd,filesep,save_dir,filesep,save_dir,'_',num2str(block),'_',num2str(trial),'.png'),'file')
-%             continue;
-%         end
+        
         [trial_images, trial_alpha] = composeImage(events,strcat(pwd,filesep,'images'),screen_w,screen_h, screen_dpi);
         trial_background = imshow(192*ones(screen_h,screen_w,3,'uint8'));
         hold on;
@@ -50,17 +47,14 @@ for i = 1:numel(subjects)
         margin = 5;
         
         %add the touchpoint to the picture
-        touchpixel = 255 * ones(2*margin+1,2*margin+1,3,'uint8');
-        touchpixel(:,:,2) = 0;
+        
+        %color of touch pixel
+        tchpixel_colour = 255 * ones(2*margin+1,2*margin+1,3,'uint8');
+        tchpixel_colour(:,:,2) = 0;
         if results{block,results_x}(trial)~=0 || results{block,results_y}(trial) ~= 0
-%             trial_images((double(screen_h) - results{block,results_x}(trial)-margin):(double(screen_h) - results{block,results_x}(trial)+margin),...
-%             results{block,results_y}(trial)-margin:results{block,results_y}(trial)+margin,:) = touchpixel; % some colour
-%             %apply also to the alpha or else your touchpoint won't appear!
-%             trial_alpha((double(screen_h) - results{block,results_x}(trial)-double(margin)):(double(screen_h) - results{block,results_x}(trial)+margin),...
-%             results{block,results_y}(trial)-margin:results{block,results_y}(trial)+margin) = 255 * ones(2*margin+1,2*margin+1,'uint8');
         
             trial_images((double(screen_h) - results{block,results_y}(trial)-margin):(double(screen_h) - results{block,results_y}(trial)+margin),...
-                (results{block,results_x}(trial)-margin:results{block,results_x}(trial)+margin),:) = touchpixel; % some colour
+                (results{block,results_x}(trial)-margin:results{block,results_x}(trial)+margin),:) = tchpixel_colour; % some colour
             %apply also to the alpha or else your touchpoint won't appear!
             trial_alpha((double(screen_h) - results{block,results_y}(trial)-margin):(double(screen_h) - results{block,results_y}(trial)+margin),...
                 (results{block,results_x}(trial)-margin:results{block,results_x}(trial)+margin)) = 255 * ones(2*margin+1,2*margin+1,'uint8');

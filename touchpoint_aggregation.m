@@ -17,7 +17,7 @@ for i = 1:numel(subjects)
     config_name = config_name{1};
     save_dir = strcat(subjects{i},'_',config_name);
     % grab all the data
-%     results = getSubjectData(subjects{i},results_dir); % each row is a block, and the columns inside correspond to trials
+    results = getSubjectData(subjects{i},results_dir); % each row is a block, and the columns inside correspond to trials
     
     % grab the configs
     configurations = getConfigurations(config_file); % each row is a trial (sorry!), also it's in string (sorry!)

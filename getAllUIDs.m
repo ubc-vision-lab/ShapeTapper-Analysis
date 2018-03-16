@@ -1,12 +1,13 @@
 %%%%%%%%%%
-% getAllSubjects
+% getAllUIDs
 % 
 % Given a data directory, first part of the filename before the underscore
 % '_' character.
+% In our case, that should be the unique ID.
 % 
 %%%%%%%%%%
 
-function all_subs = getAllSubjects(directory)
+function all_subs = getAllUIDs(directory)
     subject_files = getAllFiles(directory);
     all_subjects = cell(1,numel(subject_files));
     num_subjects = 1;

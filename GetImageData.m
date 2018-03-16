@@ -1,7 +1,7 @@
 % Given a row of shapetapper configuration (a trial), generates the
 % the image intended, at the input resolution
 % input: trial configuration, resolution (x and y)
-function [images, block, trial] = getImageData(trialConfig)
+function [images, block, trial] = GetImageData(trialConfig)
     %grab relevant columns
     % indices of columns. TODO: use a dictionary to index?
     block = str2double(trialConfig{1});
