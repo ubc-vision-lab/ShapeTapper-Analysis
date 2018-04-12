@@ -187,4 +187,3 @@ if __name__ == '__main__':
             img_mat = img_name + "_shape_analysis.mat"
             obs_mat = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
             gen_mat = img_name + "_Patient_"+patient+"_generated_uniform_sets.mat"
-            matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path)
