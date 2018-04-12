@@ -3,17 +3,34 @@
 """
 Created on Mon Mar 19 15:42:30 2018
 
+Performs analysis of distance and point clustering (Sadahiro & Takami, 2001) for each shape.
+
+Distance data will be saved in the directory "distance_analysis" with a subdirectory for each shape mask. 
+Each file contains data to create a probability distribution defined by the generated uniform sets.
+
+The MATLAB script StatAnalysis.m will use these to calculate the significance of the observed data. 
+
 @author: Jamie Dunkle
 """
 
 import cv2
-import os
+import os, errno
 import numpy as np
 import scipy.io as sio
 import distances as dist
 from timeit import default_timer as timer
 
 
+################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
+analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
+img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
+             "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
+patient = "MC"   
+img_path = "./Shapes/"         # path containing shape images
+
+
+
+################# Function Definitions #########################################################################
 def getVarMean(data) :
     var = np.sum(np.power(data, 2))/(np.size(data)-1)
     rmse = np.sqrt(var)
@@ -62,20 +79,28 @@ def get_dvals(ro_pts, max_r, generated_unif, observed, generated) :
     return d_o_plus, d_o_plus_r, d_o_minus, d_o_minus_r, d_g_plus, d_g_minus
 
 
-
 def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path):    
 
     # Read in the image 
     img = cv2.imread(os.path.join(img_path, img_file) ,cv2.IMREAD_UNCHANGED)
     img[(img[:,:,3]==0),0:3] = 0
     
-    shape_analysis = sio.loadmat(os.path.join(mat_path, img_mat))
+    try:
+        shape_analysis = sio.loadmat(os.path.join(mat_path, img_mat))
+    except (TypeError, IOError) :
+        print "Error loading: {0} -- skipping {1}...".format(img_mat, img_name)
+        return
+ 
     ma_points = shape_analysis['ma_points'].astype(np.int32) # (x,y)
     edge_points = shape_analysis['edge_points'].astype(np.int32) # (x,y)
     centroid = shape_analysis['centroid'].astype(np.int32) # (x,y)
     
     #print "Calculating Observed"
-    observed_mat = sio.loadmat(os.path.join(obs_path, obs_mat))
+    try:
+        observed_mat = sio.loadmat(os.path.join(obs_path, obs_mat))
+    except (TypeError, IOError) :
+        print "Error loading: {0} -- skipping {1}...".format(obs_mat, img_name)
+        return
     observed = observed_mat['img_dataset'].astype(np.float32)
     observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
     
@@ -164,14 +189,6 @@ def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
 
 if __name__ == '__main__':
     
-    analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
-    
-    img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
-                 "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
-        
-    patient = "MC"
-        
-    img_path = "./Shapes/"                        # path containing shape images
     mat_path = patient+"/shape_analysis/"          # path containing medial axis mat files
     obs_path = patient+"/aggregated_observations/" # path containing observed data
     
@@ -179,11 +196,18 @@ if __name__ == '__main__':
         print "Condition:", cond
         
         gen_path = patient+"/generated_uniform_data/"+cond+"/"  # path containing generated uniform data
+        
         out_path = patient+"/distance_analysis/"+cond+"/"       # output path
-    
+        try:
+            os.makedirs(out_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
         for img_name in img_names :
             print 'Starting', img_name
             img_file = img_name + ".png"
             img_mat = img_name + "_shape_analysis.mat"
             obs_mat = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
             gen_mat = img_name + "_Patient_"+patient+"_generated_uniform_sets.mat"
+            matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path)

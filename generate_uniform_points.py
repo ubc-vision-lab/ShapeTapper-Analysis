@@ -3,16 +3,43 @@
 """
 Created on Tue Mar 20 14:50:39 2018
 
+Generates sets of uniform data points corresponding to three shape masks:
+
+Bounding circle - All points within the circle defined by the diagonal of the
+                  shape's bounding rectangle (image canvas)
+In shape        - All points within the boundary of the shape itself
+Touchpoint hull - All points within a space defined by the perimeter of the touchpoints
+
+These sets are specific to each patient's data set, so this script must be run before
+running mat_analysis.py
+
+Generated sets will be saved in the directory "generated_uniform_sets" with a subdirectory
+for each shape mask
+
 @author: Jamie Dunkle
 """
 
 import cv2
-import os
+import os, errno
 import numpy as np
 import scipy.io as sio
 
 
+################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
+analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
+img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
+             "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
+patient = "MC"   
+img_path = "./Shapes/"         # path containing shape images
 
+# Parameters
+n_sets = 100000   # number of uniform data sets to generate; each data set contains a number of uniform points
+                  # equal to the number of observed points for that shape
+#scale = 1.2      # expansion factor to dilate shape (CURRENTLY UNUSED)
+
+
+
+################# Function Definitions #########################################################################
 def plot_generated(generated, img) :
     for i in range(generated.shape[0]):
         for p in generated[i] :
@@ -21,7 +48,6 @@ def plot_generated(generated, img) :
     cv2.imshow('image', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    
     
 #def dilateEdges(edge_points, centroid, scale) :
 #    edges_centered = edge_points - centroid
@@ -79,23 +105,19 @@ def gen_uniform_points_circ(n_sets, n_pts, circ_cent, circ_rad):
 
 
 if __name__ == '__main__':              
-
-#    scale = 1.2
-    n_sets = 100000
     
-    analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
-    
-    img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
-                 "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
-    patient = "MC"
-   
-    img_path = "./Shapes/" 
     mat_path = "./"+patient+"/shape_analysis/" 
     dat_path = "./"+patient+"/aggregated_observations/"
 
     for cond in analysis_conds :
         
         out_path = "./"+patient+"/generated_uniform_data/"+cond+"/"
+        try:
+            os.makedirs(out_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
         print "Condition:", cond
         
         for img_name in img_names :
@@ -106,11 +128,19 @@ if __name__ == '__main__':
             img_mat = img_name + "_shape_analysis.mat"
             data_mat = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
     
-            shape_analysis = sio.loadmat(os.path.join(mat_path, img_mat))
+            try:
+                shape_analysis = sio.loadmat(os.path.join(mat_path, img_mat))
+            except (TypeError, IOError) :
+                print "Error loading: {0} -- skipping {1}...".format(img_mat, img_name)
+                continue
             edge_points = shape_analysis['edge_points'].astype(np.int32)
             centroid = shape_analysis['centroid'].astype(np.int32)
-    
-            observed_mat = sio.loadmat(os.path.join(dat_path, data_mat))
+            
+            try:
+                observed_mat = sio.loadmat(os.path.join(dat_path, data_mat))
+            except (TypeError, IOError) :
+                print "Error loading: {0} -- skipping {1}...".format(data_mat, img_name)
+                continue
             observed = observed_mat['img_dataset'].astype(np.float32)
         
             img = cv2.imread(os.path.join(img_path, img_file),cv2.IMREAD_UNCHANGED)

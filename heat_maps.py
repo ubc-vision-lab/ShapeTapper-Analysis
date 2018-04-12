@@ -3,15 +3,32 @@
 """
 Created on Wed Mar 21 17:02:22 2018
 
+Generates "heat map" plot of touch points data for each shape
+
+Heat maps are output to the "heat_maps/" subdirectory
+
 @author: Jamie Dunkle
 """
 
 import cv2
-import os
+import os, errno
 import numpy as np
 import scipy.io as sio
 
 
+################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
+img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
+                "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
+patient = "MC"
+img_path = "./Shapes/" 
+
+# Heatmap parameters
+rad = 12                    # Touchpoint radius in pixels (default = 12)
+alpha = 0.033               # Transparency value (default=0.033)
+h_color = (0,155,255,255)   # Touchpoint color (default=(0,155,255,255), orange)
+
+
+################# Function Definitions #########################################################################
 def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
     
     img_bounds = np.array( [ [0,0], [img_dims[0], 0] , [img_dims[0],img_dims[1]], [0,img_dims[1]] ])
@@ -43,7 +60,7 @@ def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
         rad = 12
         for i in range(1, rad+1) :
             alpha = 0.033
-            cv2.circle( overlay, tuple(o), i, (0,155,255,255), thickness=-1 )
+            cv2.circle( overlay, tuple(o), i, h_color, thickness=-1 )
             cv2.addWeighted(overlay, alpha, canvas, 1 - alpha, 0, canvas)  
 #    cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 #    cv2.imshow('image', canvas)
@@ -54,19 +71,17 @@ def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
 
 
 if __name__ == '__main__':
-    
-    # Heatmap parameters
-    rad = 12
-    alpha = 0.033
-    
-    img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
-                 "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
-    patient = "MC"
-    img_path = "./Shapes/" 
+
     mat_path = "./"+patient+"/shape_analysis/"          # path containing medial axis mat files
     obs_path = "./"+patient+"/aggregated_observations/" # path containing observed data
-    out_path = "./"+patient+"/heat_maps/"       # output path
     
+    out_path = "./"+patient+"/heat_maps/"       # output path
+    try:
+        os.makedirs(out_path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
     for img_name in img_names :
         
         print 'Starting', img_name
@@ -77,12 +92,20 @@ if __name__ == '__main__':
         img = cv2.imread(os.path.join(img_path, img_file) ,cv2.IMREAD_UNCHANGED)
         img[(img[:,:,3]==0),0:3] = 0
         
-        shape_analysis = sio.loadmat(os.path.join(mat_path, img_mat))
+        try:
+            shape_analysis = sio.loadmat(os.path.join(mat_path, img_mat))
+        except (TypeError, IOError) :
+            print "Error loading: {0} -- skipping {1}...".format(img_mat, img_name)
+            continue
         ma_points = shape_analysis['ma_points'].astype(np.int32) # (x,y)
         edge_points = shape_analysis['edge_points'].astype(np.int32)  # (x,y)
         centroid = shape_analysis['centroid'].astype(np.int32)  # (x,y)
         
-        observed_mat = sio.loadmat(os.path.join(obs_path, obs_mat))
+        try:
+            observed_mat = sio.loadmat(os.path.join(obs_path, obs_mat))
+        except (TypeError, IOError) :
+            print "Error loading: {0} -- skipping {1}...".format(obs_mat, img_name)
+            continue
         observed = observed_mat['img_dataset'].astype(np.float32) 
         observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
        

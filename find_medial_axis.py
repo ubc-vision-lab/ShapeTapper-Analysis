@@ -1,6 +1,6 @@
 #!/usr/bin/python
  
-import os
+import os, errno
 import cv2
 import numpy as np
 import scipy.io as sio
@@ -8,31 +8,37 @@ import distances as dist
 import skeletonize as skel
 #from timeit import default_timer as timer
     
+################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
+img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
+             "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
+img_path = "./Shapes/"         # path containing shape images
+    
+# Medial axis detection parameters  
+offset = 10     # Pixel offset to assist contour detection (default = 10)
+c_thresh = 2    # Contour Approximation threshold (maximum error), in pixels (default = 2)
+s_thresh = 1.4  # Branch pruning threshold: >1 prunes longer branches, <1 prunes shorter (default = 1.4)
+
+# Use a second pass of pruning to remove any leftover Medial Axis branches
+thin2 = False   # Determines whether to perform a second pass of pruning (default = False)
+s_thresh2 = 0.2 # Second pass pruning threshold (default = 0.2)
+
+
 
 if __name__ == '__main__':
 
-    # Pixel offset to assist contour detection
-    offset = 10
-
-    # Contour Approximation threshold (maximum error), in pixels
-    c_thresh = 2
-    
-    # Branch pruning threshold: >1 prunes longer branches, <1 prunes shorter
-    s_thresh = 1.4
-
-    thin2 = False # Determines whether to perform a second pass of pruning
-    s_thresh2 = 0.2 # Second pass pruning threshold
-    
     # Get file directories
-    in_path = "Blake/" # "Simple/"
-    img_names = ["blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"] #,"solo10","solo11","solo3","solo6","solo7","solo9"]
     out_path = './shape_analysis/'    
-    
+    try:
+        os.makedirs(out_path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
     for img_name in img_names:
         print "Starting", img_name
         
         # Read in the image.
-        img_path = in_path + img_name
+        img_path = img_path + img_name
         img = cv2.imread(img_path,cv2.IMREAD_UNCHANGED)
         img[(img[:,:,3]==0),0:3] = 0 # Convert alpha transparency to black
         img_orig = img.copy(); # Keep a copy around
