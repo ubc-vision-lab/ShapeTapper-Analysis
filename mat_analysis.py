@@ -45,34 +45,35 @@ def getVarMean2D(data) :
     return [var, rmse, amd]
 
 
-# cumulative distribution function for "reference object" defined by ro_pts
-# returns ratio of points located within a given distance of the reference object
-def cdf(points_in, ro_pts, max_r):
-    if ro_pts.shape[0] == 1 :
-        ft_dists = dist.points2point(points_in,ro_pts)
-    else :
-        ft_dists = np.min(dist.points2points(points_in,ro_pts), axis=1)
-    points_in_region = np.empty((max_r+1,1), dtype=int)
-    for i in range(max_r+1) : 
-        points_in_region[i] = (ft_dists <= i).sum()
-    return np.true_divide(points_in_region, points_in.shape[0])
+# # cumulative distribution function for "reference object" defined by ro_pts
+# # returns ratio of points located within a given distance of the reference object
+# def cdf(points_in, ro_pts, max_r):
+#     # points2points_cmin crashes for points > 250, so fall back to numpy function
+#     if points_in.shape[0] > 250 : 
+#         ft_dists = dist.points2points_np(points_in,ro_pts)
+#     else :
+#         ft_dists = dist.points2points_c(points_in,ro_pts)
+#     points_in_region = np.empty((max_r+1,1), dtype=int)
+#     for i in range(max_r+1) : 
+#         points_in_region[i] = (ft_dists <= i).sum()
+#     return np.true_divide(points_in_region, points_in.shape[0])
 
 
 def get_dvals(ro_pts, max_r, generated_unif, observed, generated) :
     # calculate d-values for main shape
-    ds_gu = cdf(generated_unif, ro_pts, max_r)
+    ds_gu = dist.cdf(generated_unif, ro_pts, max_r)
     # calculate d-values for observed data
-    ds_o = cdf(observed, ro_pts, max_r)
+    ds_o = dist.cdf(observed, ro_pts, max_r)
     diff_o = ds_o - ds_gu
     d_o_plus = np.max(diff_o)
     d_o_plus_r = np.argmax(diff_o)
     d_o_minus = np.min(diff_o)
     d_o_minus_r = np.argmin(diff_o)
     # calculate d-values for 100k simulated data sets --> CDF
-    ds_g = np.zeros((generated.shape[0],max_r+1,1), dtype=np.float32)
-    diff_g = np.zeros((generated.shape[0],max_r+1,1), dtype=np.float32)
+    ds_g = np.zeros((generated.shape[0],max_r), dtype=np.float32)
+    diff_g = np.zeros((generated.shape[0],max_r), dtype=np.float32)
     for i in range(generated.shape[0]) :
-        ds_g[i,:] = cdf(generated[i], ro_pts, max_r)
+        ds_g[i,:] = dist.cdf(generated[i], ro_pts, max_r)
         diff_g[i,:] = ds_g[i,:] - ds_gu
     d_g_plus = np.max(diff_g, axis=1)
     d_g_minus = np.min(diff_g, axis=1)
@@ -91,9 +92,9 @@ def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
         print "Error loading: {0} -- skipping {1}...".format(img_mat, img_name)
         return
  
-    ma_points = shape_analysis['ma_points'].astype(np.int32) # (x,y)
-    edge_points = shape_analysis['edge_points'].astype(np.int32) # (x,y)
-    centroid = shape_analysis['centroid'].astype(np.int32) # (x,y)
+    ma_points = np.ascontiguousarray(shape_analysis['ma_points'].astype(np.float32)) # (x,y)
+    edge_points = np.ascontiguousarray(shape_analysis['edge_points'].astype(np.float32)) # (x,y)
+    centroid = np.ascontiguousarray(shape_analysis['centroid'].astype(np.float32)) # (x,y)
     
     #print "Calculating Observed"
     try:
@@ -101,7 +102,7 @@ def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
     except (TypeError, IOError) :
         print "Error loading: {0} -- skipping {1}...".format(obs_mat, img_name)
         return
-    observed = observed_mat['img_dataset'].astype(np.float32)
+    observed = np.ascontiguousarray(observed_mat['img_dataset'].astype(np.float32))
     observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
     
     if cond == "in_shape" :
@@ -112,10 +113,10 @@ def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
         observed = np.array(observed_inshape)
     
     start = timer()
-    observed_ma_dists = np.min(dist.points2points(observed,ma_points),axis=1)
-    observed_edge_dists = np.min(dist.points2points(observed,edge_points),axis=1)
-    observed_centroid_dists = dist.points2point(observed,centroid)
-    
+    observed_ma_dists = dist.points2points_c(observed,ma_points)
+    observed_edge_dists = dist.points2points_c(observed,edge_points)
+    observed_centroid_dists = dist.points2points_c(observed,centroid)
+
      # Save data
     observed_medaxis_data = getVarMean(observed_ma_dists)
     observed_edge_data = getVarMean(observed_edge_dists)
@@ -123,18 +124,18 @@ def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
    
 #    #print "Calculating Generated"
     generated_mat = sio.loadmat(os.path.join(gen_path, gen_mat))
-    generated = generated_mat['gen_datasets'].astype(np.float32)
+    generated = np.ascontiguousarray(generated_mat['gen_datasets'].astype(np.float32))
     
     generated_ma_dists = np.empty((generated.shape[0],generated.shape[1]))
     generated_edge_dists = np.empty((generated.shape[0],generated.shape[1]))
     generated_centroid_dists = np.empty((generated.shape[0],generated.shape[1]))
     
     for i, point_set in enumerate(generated) :
-        generated_ma_dists[i] = np.min(dist.points2points(point_set,ma_points),axis=1)
-        generated_edge_dists[i] = np.min(dist.points2points(point_set,edge_points),axis=1)
-        generated_centroid_dists[i] = dist.points2point(point_set,centroid)
+        generated_ma_dists[i] = dist.points2points_c(point_set,ma_points)
+        generated_edge_dists[i] = dist.points2points_c(point_set,edge_points)
+        generated_centroid_dists[i] = dist.points2points_c(point_set,centroid)
 
-    # Save data
+    #Save data
     generated_medaxis_data = getVarMean2D(generated_ma_dists)
     generated_edge_data = getVarMean2D(generated_edge_dists)
     generated_centroid_data = getVarMean2D(generated_centroid_dists)
@@ -155,12 +156,12 @@ def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
     img_bin[(img_bin!=0)] = 1 # convert to logical array (white = 1)
     white_idx = np.where(img_bin==1)    
     shape_points = np.transpose(np.array(white_idx))
-    shape_points = np.flip(shape_points, axis=1).astype(np.int32)
+    shape_points = np.ascontiguousarray(np.flip(shape_points, axis=1).astype(np.float32))
     
     max_r = np.max(img.shape[:2])/2
     
     start = timer()
-    dm_o_plus, dm_o_plus_r, dm_o_minus, dm_o_minus_r, dm_g_plus, dm_g_minus = get_dvals(ma_points, max_r,shape_points, observed, generated)
+    dm_o_plus, dm_o_plus_r, dm_o_minus, dm_o_minus_r, dm_g_plus, dm_g_minus = get_dvals(ma_points, max_r, shape_points, observed, generated)
     print "spat medial axis data:", timer() - start, "s"
     
     start = timer()

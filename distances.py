@@ -1,5 +1,6 @@
 import numpy as np
 from numba import guvectorize
+from _get_dists import ffi, lib
 
 
 @guvectorize(['void(float32[:], float32[:], float32[:,:])'],
@@ -12,10 +13,10 @@ def gu_mult_dist(a,b,ds):
     
 @guvectorize(['void(float32[:,:], float32[:,:], float32[:,:])'],
               "(m,n),(m,n)->(m,n)", nopython=True, cache=True)   
-def gu_sum_sqrt(a, b, s):
+def gu_sum(a, b, s):
     for i in range(a.shape[0]):
         for j in range(a.shape[1]):
-            s[i,j] = np.sqrt(a[i,j] + b[i,j])
+            s[i,j] = a[i,j] + b[i,j]
 
 
 # fast matrix-vector multiplication
@@ -30,7 +31,7 @@ def gu_mult_diag(pt, ls, dt):
 # takes vector of points and centroid, returns distances from centroid
 # points = np.array of points (points are lists of length 2)
 # centroid = list of centroid coordinates
-def points2points(points_from,points_to):
+def points2points_np(points_from,points_to):
     from_y = np.ascontiguousarray(points_from[:,0], dtype=np.float32)
     from_x = np.ascontiguousarray(points_from[:,1], dtype=np.float32)
     to_y = np.ascontiguousarray(points_to[:,0], dtype=np.float32)
@@ -42,9 +43,33 @@ def points2points(points_from,points_to):
     
     gu_mult_dist(from_y,to_y,ds_y)
     gu_mult_dist(from_x,to_x,ds_x)
-    gu_sum_sqrt(ds_x, ds_y, dists)
+    gu_sum(ds_x, ds_y, dists)
 
-    return dists
+    return np.sqrt(np.min(dists, axis=1))
+
+
+def points2points_c(points_from,points_to):
+    npf = points_from.shape[0]
+    npt = points_to.shape[0]
+    pf = ffi.cast("float *", points_from.ctypes.data)
+    pt = ffi.cast("float *", points_to.ctypes.data)
+    ds = ffi.cast("float *", np.empty(npf, dtype=np.float32).ctypes.data)
+    lib.pts2pts(ds, pf, pt, npf, npt)
+    return np.array(ffi.unpack(ds, npf), dtype=np.float32)
+
+
+def cdf(points_in, ro_pts, max_r):
+    # points2points_cmin crashes for points > 250, so fall back to numpy function
+    if points_in.shape[0] < 250 : 
+        ft_dists = points2points_c(points_in,ro_pts)
+    else :
+        ft_dists = points2points_np(points_in,ro_pts)
+
+    out = ffi.cast("float *", np.empty(max_r+1, dtype=np.float32).ctypes.data)
+    ftds = ffi.cast("float *", ft_dists.ctypes.data)
+
+    lib.cdf(out, ftds, points_in.shape[0], max_r+1)
+    return np.array(ffi.unpack(out, max_r), dtype=np.float32)
 
 
 # takes vectors of points and medial axis line segments, returns min distances

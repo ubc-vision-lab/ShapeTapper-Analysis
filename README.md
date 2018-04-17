@@ -16,10 +16,11 @@ How to use this analysis package:
  - Open the scripts and ensure that the patient variable defined at the top of the file matches the current patient.
 
  - Run the following scripts in this order:
-   1. `generate_uniform_points.py` - this will generate uniform data sets in the the `generated_uniform_data/` subdirectory
-   2. `mat_analysis.py` - this will perform distance and spatial analysis on the touch data and save them in `distance_analysis/` (note: this script currently takes several hours to run)
-   3. `StatAnalysis.m`  - creates a statistical summary of observed touchpoints based on the uniform data sets, saved as Excel spreadsheets in the `distance_analysis/` subdirectory
-   4. `heat_maps.py` - (can be run at any point) 
+   1. `get_dists_c_build.py` - this will build an optimized C library necessary to run the spatial analysis in a reasonable timeframe
+   2. `generate_uniform_points.py` - this will generate uniform data sets in the the `generated_uniform_data/` subdirectory
+   3. `mat_analysis.py` - this will perform distance and spatial analysis on the touch data and save them in `distance_analysis/` (note: this script currently takes several hours to run)
+   4. `StatAnalysis.m`  - creates a statistical summary of observed touchpoints based on the uniform data sets, saved as Excel spreadsheets in the `distance_analysis/` subdirectory
+   5. `heat_maps.py` - (can be run at any point) 
 
  Notes:
   - Most scripts have customizable parameters at the top, along with the shape names and patient name.
