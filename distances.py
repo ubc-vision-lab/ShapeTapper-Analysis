@@ -28,6 +28,29 @@ def gu_mult_diag(pt, ls, dt):
             dt[i,j] = pt[i,j] * ls[j]
 
 
+def points2points_c(points_from,points_to):
+    npf = points_from.shape[0]
+    npt = points_to.shape[0]
+    pf = ffi.cast("float *", points_from.ctypes.data)
+    pt = ffi.cast("float *", points_to.ctypes.data)
+    ds = ffi.new("float[{0}]".format(npf)) # random set
+
+    lib.pts2pts(ds, pf, pt, npf, npt)
+    return np.array(ffi.unpack(ds, npf), dtype=np.float32)
+
+
+def cdf_c(points_in, ro_pts, max_r):
+    n_ptsin = points_in.shape[0]
+
+    ft_dists = points2points_c(points_in,ro_pts)
+    out = ffi.new("int[{0}]".format(max_r))# random set
+    ftds = ffi.cast("float *", ft_dists.ctypes.data)
+    
+    lib.cdf(out, ftds, n_ptsin, max_r)
+    cdf = np.array(ffi.unpack(out, max_r), dtype=int)
+    return np.true_divide(cdf, n_ptsin)
+
+
 # takes vector of points and centroid, returns distances from centroid
 # points = np.array of points (points are lists of length 2)
 # centroid = list of centroid coordinates
@@ -48,28 +71,27 @@ def points2points_np(points_from,points_to):
     return np.sqrt(np.min(dists, axis=1))
 
 
-def points2points_c(points_from,points_to):
-    npf = points_from.shape[0]
-    npt = points_to.shape[0]
-    pf = ffi.cast("float *", points_from.ctypes.data)
-    pt = ffi.cast("float *", points_to.ctypes.data)
-    ds = ffi.cast("float *", np.empty(npf, dtype=np.float32).ctypes.data)
-    lib.pts2pts(ds, pf, pt, npf, npt)
-    return np.array(ffi.unpack(ds, npf), dtype=np.float32)
-
-
-def cdf(points_in, ro_pts, max_r):
+# cumulative distribution function for "reference object" defined by ro_pts
+# returns ratio of points located within a given distance of the reference object
+def cdf_np(points_in, ro_pts, max_r):
     # points2points_cmin crashes for points > 250, so fall back to numpy function
-    if points_in.shape[0] < 250 : 
-        ft_dists = points2points_c(points_in,ro_pts)
-    else :
-        ft_dists = points2points_np(points_in,ro_pts)
+    ft_dists = points2points_np(points_in,ro_pts)
+    ft_dists = np.sort(ft_dists)
 
-    out = ffi.cast("float *", np.empty(max_r+1, dtype=np.float32).ctypes.data)
-    ftds = ffi.cast("float *", ft_dists.ctypes.data)
+    points_in_region = np.empty(max_r, dtype=int)
+    points_in_region[0] = 0
+    idx = 0
+    n_ptsin = points_in.shape[0]
 
-    lib.cdf(out, ftds, points_in.shape[0], max_r+1)
-    return np.array(ffi.unpack(out, max_r), dtype=np.float32)
+    for r in range(max_r-1) :
+        while ft_dists[idx] < r :
+            points_in_region[r] += 1
+            idx += 1 
+            if idx == n_ptsin :
+                points_in_region[r+1:] = n_ptsin
+                return np.true_divide(points_in_region, n_ptsin)
+        points_in_region[r+1] = points_in_region[r]
+    return np.true_divide(points_in_region, n_ptsin)
 
 
 # takes vectors of points and medial axis line segments, returns min distances

@@ -489,80 +489,51 @@ static void (*_cffi_call_python_org)(struct _cffi_externpy_s *, char *);
 
 /************************************************************/
 
-
+    
     #include <math.h>
     #include <float.h>
-    void pts2pts(float *out, const float *pts_from, const float *pts_to, const int n_from, const int n_to) {
-        int i,j;
-        for (i=0; i<n_from; ++i) 
-        {
-            float p_min = FLT_MAX;
-            const float from_x = pts_from[i*2];
-            const float from_y = pts_from[i*2+1]; 
-            for (j=0; j<n_to; ++j) 
-            {
-                const float diff_x = from_x - pts_to[j*2];
-                const float diff_y = from_y - pts_to[j*2+1];
-                const float dist = (diff_x * diff_x) + (diff_y * diff_y);
-                if (dist < p_min) p_min = dist;
-            }
-            out[i] = sqrtf(p_min);
-        }
-    }
-
-    static int compare (const void * a, const void * b) {
-        float fa = *(const float*) a;
-        float fb = *(const float*) b;
-        return (fa > fb) - (fa < fb);
-    }
-
-    void cdf(float *out, float *ft_dists, const int n_ptsin, const int max_r) {
-        const float npts_div = (float) 1.0f / n_ptsin;
-        int i, curr;
-
-        out[0] = 0.0f;
-        qsort(ft_dists, n_ptsin, sizeof(float), &compare);
-        for (i=0, curr=0; i < max_r-1; ++i) { 
-            while (ft_dists[curr] < i) {
-                out[i] += 1.0f;
-                ++curr;
-                if (curr == n_ptsin) {
-                    int j;
-                    for (j=i; j <= max_r; ++j) { 
-                        out[j] = n_ptsin * npts_div;
-                    }
-                    return;
-                }
-            }
-            out[i+1] = out[i];
-            out[i] = out[i] * npts_div;
-        }
-        out[max_r] = out[max_r] * npts_div;
-        return;
-    }
+    #include "spatlib.c"
 
 
 /************************************************************/
 
 static void *_cffi_types[] = {
-/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 14), // void()(float *, float *, int, int)
-/*  1 */ _CFFI_OP(_CFFI_OP_POINTER, 13), // float *
-/*  2 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/*  3 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7), // int
-/*  4 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/*  5 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  6 */ _CFFI_OP(_CFFI_OP_FUNCTION, 14), // void()(float *, float const *, float const *, int, int)
-/*  7 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/*  8 */ _CFFI_OP(_CFFI_OP_POINTER, 13), // float const *
-/*  9 */ _CFFI_OP(_CFFI_OP_NOOP, 8),
+/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(float *, float const *, float const *, int, int)
+/*  1 */ _CFFI_OP(_CFFI_OP_POINTER, 11), // float *
+/*  2 */ _CFFI_OP(_CFFI_OP_POINTER, 11), // float const *
+/*  3 */ _CFFI_OP(_CFFI_OP_NOOP, 2),
+/*  4 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7), // int
+/*  5 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/*  6 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/*  7 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(float *, float const *, int, float, float, float, float, int, int)
+/*  8 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/*  9 */ _CFFI_OP(_CFFI_OP_NOOP, 2),
 /* 10 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 11 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 12 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 13 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13), // float
-/* 14 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 0), // void
+/* 11 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13), // float
+/* 12 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 13 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 14 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 15 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 16 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 17 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 18 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(float *, float, float, float, int, int)
+/* 19 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 20 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 21 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 22 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 23 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 24 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 25 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 26 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(int *, float *, int, int)
+/* 27 */ _CFFI_OP(_CFFI_OP_POINTER, 4), // int *
+/* 28 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 29 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 30 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 31 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 32 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 0), // void
 };
 
-static void _cffi_d_cdf(float * x0, float * x1, int x2, int x3)
+static void _cffi_d_cdf(int * x0, float * x1, int x2, int x3)
 {
   cdf(x0, x1, x2, x3);
 }
@@ -570,7 +541,7 @@ static void _cffi_d_cdf(float * x0, float * x1, int x2, int x3)
 static PyObject *
 _cffi_f_cdf(PyObject *self, PyObject *args)
 {
-  float * x0;
+  int * x0;
   float * x1;
   int x2;
   int x3;
@@ -584,13 +555,13 @@ _cffi_f_cdf(PyObject *self, PyObject *args)
     return NULL;
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(1), arg0, (char **)&x0);
+      _cffi_type(27), arg0, (char **)&x0);
   if (datasize != 0) {
     if (datasize < 0)
       return NULL;
-    x0 = (float *)alloca((size_t)datasize);
+    x0 = (int *)alloca((size_t)datasize);
     memset((void *)x0, 0, (size_t)datasize);
-    if (_cffi_convert_array_from_object((char *)x0, _cffi_type(1), arg0) < 0)
+    if (_cffi_convert_array_from_object((char *)x0, _cffi_type(27), arg0) < 0)
       return NULL;
   }
 
@@ -625,6 +596,171 @@ _cffi_f_cdf(PyObject *self, PyObject *args)
 }
 #else
 #  define _cffi_f_cdf _cffi_d_cdf
+#endif
+
+static void _cffi_d_gen_uniform_bounds(float * x0, float const * x1, int x2, float x3, float x4, float x5, float x6, int x7, int x8)
+{
+  gen_uniform_bounds(x0, x1, x2, x3, x4, x5, x6, x7, x8);
+}
+#ifndef PYPY_VERSION
+static PyObject *
+_cffi_f_gen_uniform_bounds(PyObject *self, PyObject *args)
+{
+  float * x0;
+  float const * x1;
+  int x2;
+  float x3;
+  float x4;
+  float x5;
+  float x6;
+  int x7;
+  int x8;
+  Py_ssize_t datasize;
+  PyObject *arg0;
+  PyObject *arg1;
+  PyObject *arg2;
+  PyObject *arg3;
+  PyObject *arg4;
+  PyObject *arg5;
+  PyObject *arg6;
+  PyObject *arg7;
+  PyObject *arg8;
+
+  if (!PyArg_UnpackTuple(args, "gen_uniform_bounds", 9, 9, &arg0, &arg1, &arg2, &arg3, &arg4, &arg5, &arg6, &arg7, &arg8))
+    return NULL;
+
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(1), arg0, (char **)&x0);
+  if (datasize != 0) {
+    if (datasize < 0)
+      return NULL;
+    x0 = (float *)alloca((size_t)datasize);
+    memset((void *)x0, 0, (size_t)datasize);
+    if (_cffi_convert_array_from_object((char *)x0, _cffi_type(1), arg0) < 0)
+      return NULL;
+  }
+
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(2), arg1, (char **)&x1);
+  if (datasize != 0) {
+    if (datasize < 0)
+      return NULL;
+    x1 = (float const *)alloca((size_t)datasize);
+    memset((void *)x1, 0, (size_t)datasize);
+    if (_cffi_convert_array_from_object((char *)x1, _cffi_type(2), arg1) < 0)
+      return NULL;
+  }
+
+  x2 = _cffi_to_c_int(arg2, int);
+  if (x2 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
+  x3 = (float)_cffi_to_c_float(arg3);
+  if (x3 == (float)-1 && PyErr_Occurred())
+    return NULL;
+
+  x4 = (float)_cffi_to_c_float(arg4);
+  if (x4 == (float)-1 && PyErr_Occurred())
+    return NULL;
+
+  x5 = (float)_cffi_to_c_float(arg5);
+  if (x5 == (float)-1 && PyErr_Occurred())
+    return NULL;
+
+  x6 = (float)_cffi_to_c_float(arg6);
+  if (x6 == (float)-1 && PyErr_Occurred())
+    return NULL;
+
+  x7 = _cffi_to_c_int(arg7, int);
+  if (x7 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
+  x8 = _cffi_to_c_int(arg8, int);
+  if (x8 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
+  Py_BEGIN_ALLOW_THREADS
+  _cffi_restore_errno();
+  { gen_uniform_bounds(x0, x1, x2, x3, x4, x5, x6, x7, x8); }
+  _cffi_save_errno();
+  Py_END_ALLOW_THREADS
+
+  (void)self; /* unused */
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+#else
+#  define _cffi_f_gen_uniform_bounds _cffi_d_gen_uniform_bounds
+#endif
+
+static void _cffi_d_gen_uniform_circle(float * x0, float x1, float x2, float x3, int x4, int x5)
+{
+  gen_uniform_circle(x0, x1, x2, x3, x4, x5);
+}
+#ifndef PYPY_VERSION
+static PyObject *
+_cffi_f_gen_uniform_circle(PyObject *self, PyObject *args)
+{
+  float * x0;
+  float x1;
+  float x2;
+  float x3;
+  int x4;
+  int x5;
+  Py_ssize_t datasize;
+  PyObject *arg0;
+  PyObject *arg1;
+  PyObject *arg2;
+  PyObject *arg3;
+  PyObject *arg4;
+  PyObject *arg5;
+
+  if (!PyArg_UnpackTuple(args, "gen_uniform_circle", 6, 6, &arg0, &arg1, &arg2, &arg3, &arg4, &arg5))
+    return NULL;
+
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(1), arg0, (char **)&x0);
+  if (datasize != 0) {
+    if (datasize < 0)
+      return NULL;
+    x0 = (float *)alloca((size_t)datasize);
+    memset((void *)x0, 0, (size_t)datasize);
+    if (_cffi_convert_array_from_object((char *)x0, _cffi_type(1), arg0) < 0)
+      return NULL;
+  }
+
+  x1 = (float)_cffi_to_c_float(arg1);
+  if (x1 == (float)-1 && PyErr_Occurred())
+    return NULL;
+
+  x2 = (float)_cffi_to_c_float(arg2);
+  if (x2 == (float)-1 && PyErr_Occurred())
+    return NULL;
+
+  x3 = (float)_cffi_to_c_float(arg3);
+  if (x3 == (float)-1 && PyErr_Occurred())
+    return NULL;
+
+  x4 = _cffi_to_c_int(arg4, int);
+  if (x4 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
+  x5 = _cffi_to_c_int(arg5, int);
+  if (x5 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
+  Py_BEGIN_ALLOW_THREADS
+  _cffi_restore_errno();
+  { gen_uniform_circle(x0, x1, x2, x3, x4, x5); }
+  _cffi_save_errno();
+  Py_END_ALLOW_THREADS
+
+  (void)self; /* unused */
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+#else
+#  define _cffi_f_gen_uniform_circle _cffi_d_gen_uniform_circle
 #endif
 
 static void _cffi_d_pts2pts(float * x0, float const * x1, float const * x2, int x3, int x4)
@@ -662,24 +798,24 @@ _cffi_f_pts2pts(PyObject *self, PyObject *args)
   }
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(8), arg1, (char **)&x1);
+      _cffi_type(2), arg1, (char **)&x1);
   if (datasize != 0) {
     if (datasize < 0)
       return NULL;
     x1 = (float const *)alloca((size_t)datasize);
     memset((void *)x1, 0, (size_t)datasize);
-    if (_cffi_convert_array_from_object((char *)x1, _cffi_type(8), arg1) < 0)
+    if (_cffi_convert_array_from_object((char *)x1, _cffi_type(2), arg1) < 0)
       return NULL;
   }
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(8), arg2, (char **)&x2);
+      _cffi_type(2), arg2, (char **)&x2);
   if (datasize != 0) {
     if (datasize < 0)
       return NULL;
     x2 = (float const *)alloca((size_t)datasize);
     memset((void *)x2, 0, (size_t)datasize);
-    if (_cffi_convert_array_from_object((char *)x2, _cffi_type(8), arg2) < 0)
+    if (_cffi_convert_array_from_object((char *)x2, _cffi_type(2), arg2) < 0)
       return NULL;
   }
 
@@ -706,8 +842,10 @@ _cffi_f_pts2pts(PyObject *self, PyObject *args)
 #endif
 
 static const struct _cffi_global_s _cffi_globals[] = {
-  { "cdf", (void *)_cffi_f_cdf, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 0), (void *)_cffi_d_cdf },
-  { "pts2pts", (void *)_cffi_f_pts2pts, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 6), (void *)_cffi_d_pts2pts },
+  { "cdf", (void *)_cffi_f_cdf, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 26), (void *)_cffi_d_cdf },
+  { "gen_uniform_bounds", (void *)_cffi_f_gen_uniform_bounds, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 7), (void *)_cffi_d_gen_uniform_bounds },
+  { "gen_uniform_circle", (void *)_cffi_f_gen_uniform_circle, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 18), (void *)_cffi_d_gen_uniform_circle },
+  { "pts2pts", (void *)_cffi_f_pts2pts, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 0), (void *)_cffi_d_pts2pts },
 };
 
 static const struct _cffi_type_context_s _cffi_type_context = {
@@ -717,12 +855,12 @@ static const struct _cffi_type_context_s _cffi_type_context = {
   NULL,  /* no struct_unions */
   NULL,  /* no enums */
   NULL,  /* no typenames */
-  2,  /* num_globals */
+  4,  /* num_globals */
   0,  /* num_struct_unions */
   0,  /* num_enums */
   0,  /* num_typenames */
   NULL,  /* no includes */
-  15,  /* num_types */
+  33,  /* num_types */
   0,  /* flags */
 };
 

@@ -24,8 +24,8 @@ from timeit import default_timer as timer
 ################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
 analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
 img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
-             "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
-patient = "MC"   
+             "blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
+patient = "MC2"   
 img_path = "./Shapes/"         # path containing shape images
 
 
@@ -45,25 +45,11 @@ def getVarMean2D(data) :
     return [var, rmse, amd]
 
 
-# # cumulative distribution function for "reference object" defined by ro_pts
-# # returns ratio of points located within a given distance of the reference object
-# def cdf(points_in, ro_pts, max_r):
-#     # points2points_cmin crashes for points > 250, so fall back to numpy function
-#     if points_in.shape[0] > 250 : 
-#         ft_dists = dist.points2points_np(points_in,ro_pts)
-#     else :
-#         ft_dists = dist.points2points_c(points_in,ro_pts)
-#     points_in_region = np.empty((max_r+1,1), dtype=int)
-#     for i in range(max_r+1) : 
-#         points_in_region[i] = (ft_dists <= i).sum()
-#     return np.true_divide(points_in_region, points_in.shape[0])
-
-
 def get_dvals(ro_pts, max_r, generated_unif, observed, generated) :
     # calculate d-values for main shape
-    ds_gu = dist.cdf(generated_unif, ro_pts, max_r)
+    ds_gu = dist.cdf_np(generated_unif, ro_pts, max_r)
     # calculate d-values for observed data
-    ds_o = dist.cdf(observed, ro_pts, max_r)
+    ds_o = dist.cdf_c(observed, ro_pts, max_r)
     diff_o = ds_o - ds_gu
     d_o_plus = np.max(diff_o)
     d_o_plus_r = np.argmax(diff_o)
@@ -73,15 +59,14 @@ def get_dvals(ro_pts, max_r, generated_unif, observed, generated) :
     ds_g = np.zeros((generated.shape[0],max_r), dtype=np.float32)
     diff_g = np.zeros((generated.shape[0],max_r), dtype=np.float32)
     for i in range(generated.shape[0]) :
-        ds_g[i,:] = dist.cdf(generated[i], ro_pts, max_r)
-        diff_g[i,:] = ds_g[i,:] - ds_gu
+        ds_g[i] = dist.cdf_c(generated[i], ro_pts, max_r)
+        diff_g[i] = ds_g[i] - ds_gu
     d_g_plus = np.max(diff_g, axis=1)
     d_g_minus = np.min(diff_g, axis=1)
     return d_o_plus, d_o_plus_r, d_o_minus, d_o_minus_r, d_g_plus, d_g_minus
 
 
 def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path):    
-
     # Read in the image 
     img = cv2.imread(os.path.join(img_path, img_file) ,cv2.IMREAD_UNCHANGED)
     img[(img[:,:,3]==0),0:3] = 0
@@ -190,7 +175,7 @@ def matAnalysis(img_file, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
 
 if __name__ == '__main__':
     
-    mat_path = patient+"/shape_analysis/"          # path containing medial axis mat files
+    mat_path = img_path+"shape_analysis/"          # path containing medial axis mat files
     obs_path = patient+"/aggregated_observations/" # path containing observed data
     
     for cond in analysis_conds :

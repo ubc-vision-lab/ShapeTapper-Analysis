@@ -1,14 +1,14 @@
-patient = 'DF';
+patient = 'MC2';
 
 analysis_conds = {'in_shape','bounding_circle','touchpoint_hull'};
 
-shapes = {'blake_01','blake_04','blake_06','blake_07','blake_08','blake_09','blake_10','blake_11','blake_12',...
+shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07','blake_08','blake_09','blake_10','blake_11','blake_12',...
           'solo3','solo5','solo6','solo7','solo9','solo10','solo11','solo12'};
 
 for c=1:3
 
-    in_path = [patient '/generated_uniform_data/' analysis_conds{c} '/'];
-    out_path = [patient '/generated_uniform_data/'];
+    in_path = [patient '/distance_analysis/' analysis_conds{c} '/'];
+    out_path = [patient '/distance_analysis/'];
     
     num_shapes = length(shapes);
     
@@ -37,12 +37,12 @@ for c=1:3
         centroid_var(i) = KernelDistApproximator(vm_data.generated_centroid_data(1,:)', vm_data.observed_centroid_data(1)); % variance
         centroid_amd(i) = KernelDistApproximator(vm_data.generated_centroid_data(3,:)', vm_data.observed_centroid_data(3)); % amd    
 
-        medaxis_dplus(i) = KernelDistApproximator(s_data.generated_medaxis_dplus, s_data.observed_medaxis_dplus(1));
-        medaxis_dminus(i) = KernelDistApproximator(s_data.generated_medaxis_dminus, s_data.observed_medaxis_dminus(1));
-        edge_dplus(i) = KernelDistApproximator(s_data.generated_edge_dplus, s_data.observed_edge_dplus(1));
-        edge_dminus(i) = KernelDistApproximator(s_data.generated_edge_dminus, s_data.observed_edge_dminus(1));
-        centroid_dplus(i) = KernelDistApproximator(s_data.generated_centroid_dplus, s_data.observed_centroid_dplus(1));
-        centroid_dminus(i) = KernelDistApproximator(s_data.generated_centroid_dminus, s_data.observed_centroid_dminus(1));
+        medaxis_dplus(i) = KernelDistApproximator(s_data.generated_medaxis_dplus', s_data.observed_medaxis_dplus(1));
+        medaxis_dminus(i) = KernelDistApproximator(s_data.generated_medaxis_dminus', s_data.observed_medaxis_dminus(1));
+        edge_dplus(i) = KernelDistApproximator(s_data.generated_edge_dplus', s_data.observed_edge_dplus(1));
+        edge_dminus(i) = KernelDistApproximator(s_data.generated_edge_dminus', s_data.observed_edge_dminus(1));
+        centroid_dplus(i) = KernelDistApproximator(s_data.generated_centroid_dplus', s_data.observed_centroid_dplus(1));
+        centroid_dminus(i) = KernelDistApproximator(s_data.generated_centroid_dminus', s_data.observed_centroid_dminus(1));
 
         if medaxis_dplus(i) > 0.95
             if medaxis_dminus(i) >= 0.05
@@ -105,6 +105,6 @@ for c=1:3
                     edge_dplus, edge_dminus, edge_result);
                 
 %     save(['stat_summary_' analysis_conds{c} '.mat'], 'results');
-    writetable(results, [outpath 'stat_summary_' analysis_conds{c} '.xlsx']);
+    writetable(results, [out_path 'stat_summary_' analysis_conds{c} '.xlsx']);
 %     
 end % end condition loop

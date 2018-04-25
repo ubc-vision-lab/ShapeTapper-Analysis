@@ -9,14 +9,14 @@ import skeletonize as skel
 #from timeit import default_timer as timer
     
 ################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
-img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
-             "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
+img_names = ['blake_07']#["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
+            # "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
 img_path = "./Shapes/"         # path containing shape images
     
 # Medial axis detection parameters  
 offset = 10     # Pixel offset to assist contour detection (default = 10)
 c_thresh = 2    # Contour Approximation threshold (maximum error), in pixels (default = 2)
-s_thresh = 1.4  # Branch pruning threshold: >1 prunes longer branches, <1 prunes shorter (default = 1.4)
+s_thresh = 1.2  # Branch pruning threshold: >1 prunes longer branches, <1 prunes shorter (default = 1.4)
 
 # Use a second pass of pruning to remove any leftover Medial Axis branches
 thin2 = False   # Determines whether to perform a second pass of pruning (default = False)
@@ -27,7 +27,7 @@ s_thresh2 = 0.2 # Second pass pruning threshold (default = 0.2)
 if __name__ == '__main__':
 
     # Get file directories
-    out_path = './shape_analysis/'    
+    out_path = img_path+'shape_analysis/'    
     try:
         os.makedirs(out_path)
     except OSError as e:
@@ -38,14 +38,14 @@ if __name__ == '__main__':
         print "Starting", img_name
         
         # Read in the image.
-        img_path = img_path + img_name
-        img = cv2.imread(img_path,cv2.IMREAD_UNCHANGED)
+        img_file = img_path + img_name + ".png"
+        img = cv2.imread(img_file,cv2.IMREAD_UNCHANGED)
         img[(img[:,:,3]==0),0:3] = 0 # Convert alpha transparency to black
-        img_orig = img.copy(); # Keep a copy around
+        img_orig = img.copy()        # Keep a copy around
         
         # Image must be offset to find contours
         img = cv2.copyMakeBorder(img, top=offset, bottom=offset, left=offset, right=offset, 
-                                 borderType=cv2.BORDER_CONSTANT, value=0);
+                                 borderType=cv2.BORDER_CONSTANT, value=0)
         
         # Binarize image
         img_bin = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
@@ -83,10 +83,10 @@ if __name__ == '__main__':
         if thin2:
             ima_points, img_ima_bin = skel.pruneSkeleton(ima_points, img_ima_bin, ft_dists, s_thresh2)
 
-        # Get distance information for centroid and medial axis points (for statistical analysis of touch data)
-        dist_edges = np.min(dist.points2points(white_points,edge_points), axis=1)
-        dist_medaxis = np.min(dist.points2points(white_points,ima_points),axis=1)
-        dist_cent = dist.points2point(white_points,centroid)
+#        # Get distance information for centroid and medial axis points (for statistical analysis of touch data)
+#        dist_edges = np.min(dist.points2points_np(white_points,edge_points), axis=1)
+#        dist_medaxis = np.min(dist.points2points_np(white_points,ima_points),axis=1)
+#        dist_cent = dist.points2point(white_points,centroid)
 
         # Format data to x-y coordinates (OpenCV uses y-x), remove offset
         ima_points = np.flip(ima_points, axis=1) - [offset,offset]
@@ -100,19 +100,24 @@ if __name__ == '__main__':
             cv2.circle( img_orig, tuple(e), 1, (0,0,255,255) ) 
         cv2.circle( img_orig, tuple(centroid), 4, (0,255,0,255) )    
         
-#       # DEBUG - show image
+       # DEBUG - show image
         cv2.namedWindow('image', cv2.WINDOW_NORMAL)
         cv2.imshow('image', img_orig)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+        # Save after hand cleaning img_ima_bin in Spyder
+#        x = np.array(np.where(img_ima_bin==1))
+#        x = np.array(zip(*x))
+#        ima_points = np.flip(x, axis=1) - [offset,offset]
+
         # Save a copy of the image
-        cv2.imwrite(out_path + img_name[:len(img_name)-4] + '_ma' + img_name[len(img_name)-4:],img_orig)
+        cv2.imwrite(out_path + img_name + '_ma.png',img_orig)
         
         #Save Medial Axis, Edge Points and Centroid to MAT file, along with distance information
         sio.savemat(out_path + img_name + '_shape_analysis.mat', 
-                    {'ma_points':ima_points, 'edge_points':edge_points, 'centroid':centroid, 
-                     'contour_lines':contour_lines, 'feature_transform':ft_dists, 'white_points':white_points, 
-                     'dist_edges':dist_edges, 'dist_medaxis':dist_medaxis, 'dist_centroid':dist_cent});
+                    {'ma_points':ima_points, 'edge_points':edge_points, 'centroid':centroid})
+#                     'contour_lines':contour_lines, 'feature_transform':ft_dists, 'white_points':white_points, 
+#                     'dist_edges':dist_edges, 'dist_medaxis':dist_medaxis, 'dist_centroid':dist_cent});
 
 

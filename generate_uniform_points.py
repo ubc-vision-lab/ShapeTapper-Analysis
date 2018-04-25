@@ -23,12 +23,13 @@ import cv2
 import os, errno
 import numpy as np
 import scipy.io as sio
-
+from _get_dists import ffi, lib
+from timeit import default_timer as timer
 
 ################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
 analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
-img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
-             "blake_01","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
+img_names = ["blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12",
+            "solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12"]
 patient = "MC"   
 img_path = "./Shapes/"         # path containing shape images
 
@@ -56,61 +57,44 @@ def plot_generated(generated, img) :
 
 
 # generates uniformly distributed data points inside a region defined by edge_points
-# using the include/exclude method via pointPolygonTest
-def gen_uniform_points(n_sets, n_pts, edge_points, img_dims, offset = 10):
-    num_uniform = np.zeros(n_sets, dtype=np.uint8) # count num of included points
-    uniform_points = np.zeros((n_sets,n_pts,2))
-    edge_points += offset # pointPolygonTest fails if edge points fall on img canvas borders
-    while True:
-        # generate random data points in the shape's bounding rectangle
-        rand_set_y = np.random.uniform (0, img_dims[0]+1, (n_pts*2,n_sets))
-        rand_set_x = np.random.uniform (0, img_dims[1]+1, (n_pts*2,n_sets))
-        rand_points = np.array([rand_set_x, rand_set_y]).transpose()
-        rand_points += offset
-        for i in range(rand_points.shape[0]) : # for each point set
-            for rpt in rand_points[i] :        # for each point
-                if num_uniform[i] >= n_pts :
-                        continue # skip any point set which has been filled
-                else:
-                    if cv2.pointPolygonTest(edge_points, tuple(rpt), measureDist=False) == 1 :
-                        uniform_points[i,num_uniform[i],:] = np.array(rpt)
-                        num_uniform[i] += 1
-        if np.all(num_uniform >= n_pts): # if not all sets have been filled, loop again
-            uniform_points -= offset
-            return uniform_points
-        
-        
-# generates uniformly distributed data points inside a circular region
-# using the include/exclude method via pointPolygonTest
-def gen_uniform_points_circ(n_sets, n_pts, circ_cent, circ_rad):
-    num_uniform = np.zeros(n_sets, dtype=np.uint8) # count num of included points
-    uniform_points = np.zeros((n_sets,n_pts,2))
-    circ_bd_x = [np.floor(circ_cent[1] - circ_rad), np.ceil(circ_cent[1] + circ_rad)]
-    circ_bd_y = [np.floor(circ_cent[0] - circ_rad), np.ceil(circ_cent[0] + circ_rad)]
-    while True:
-        # generate random data points in the shape's bounding rectangle
-        rand_set_y = np.random.uniform (circ_bd_y[0], circ_bd_y[1], (n_pts*2,n_sets))
-        rand_set_x = np.random.uniform (circ_bd_x[0], circ_bd_x[1], (n_pts*2,n_sets))
-        rand_points = np.array([rand_set_y, rand_set_x]).transpose()
-        for i in range(rand_points.shape[0]) : # for each point set
-            for rpt in rand_points[i] :        # for each point
-                if num_uniform[i] >= n_pts :
-                        continue # skip any point set which has been filled
-                else:
-                    if np.linalg.norm(rpt - circ_cent) <= circ_rad :
-                        uniform_points[i,num_uniform[i],:] = np.array(rpt)
-                        num_uniform[i] += 1
-        if np.all(num_uniform >= n_pts): # if not all sets have been filled, loop again
-            return uniform_points
+def gen_uniform_points_bounds(n_sets, n_pts, edge_points, img_dims_min, img_dims_max) :
+    uniform_points = np.zeros((n_sets,n_pts,2)) # output array
+
+    # C subroutine uses random seeds, and is called too frequently for system time seeds
+    seeds = np.random.random_integers(np.iinfo(np.int32).min, np.iinfo(np.int32).max, n_sets)
+    e_pts = ffi.cast("float *", edge_points.ctypes.data) # random set
+    rand_decl = "float[{0}]".format(n_pts*2) # string to allocate float array of constant size
+    
+    for i in range(n_sets) :
+        rands = ffi.new(rand_decl) # random set
+        lib.gen_uniform_bounds(rands, e_pts, edge_points.shape[0], img_dims_min[1], img_dims_max[1], img_dims_min[0], img_dims_max[0], n_pts, seeds[i])
+        uniform_points[i] = np.array(ffi.unpack(rands, n_pts*2), dtype=np.float32).reshape((n_pts,2))
+
+    return uniform_points
+
+
+# generates uniformly distributed data points inside a circle
+def gen_uniform_points_circle(n_sets, n_pts, circ_cent, circ_rad):
+    uniform_points = np.zeros((n_sets,n_pts,2)) # output array
+
+    seeds = np.random.random_integers(np.iinfo(np.int32).min, np.iinfo(np.int32).max, n_sets)
+    rand_decl = "float[{0}]".format(n_pts*2) # string to allocate float array of constant size
+
+    for i in range(n_sets) :
+        rands = ffi.new(rand_decl) # random set
+        lib.gen_uniform_circle(rands, circ_cent[1], circ_cent[0], circ_rad, n_pts, seeds[i])
+        uniform_points[i] = np.array(ffi.unpack(rands, n_pts*2), dtype=np.float32).reshape((n_pts,2))
+
+    return uniform_points
+
 
 
 if __name__ == '__main__':              
-    
-    mat_path = "./"+patient+"/shape_analysis/" 
+
+    mat_path = img_path+"shape_analysis/"
     dat_path = "./"+patient+"/aggregated_observations/"
 
     for cond in analysis_conds :
-        
         out_path = "./"+patient+"/generated_uniform_data/"+cond+"/"
         try:
             os.makedirs(out_path)
@@ -121,7 +105,6 @@ if __name__ == '__main__':
         print "Condition:", cond
         
         for img_name in img_names :
-            
             generated_data_sets = []
             
             img_file = img_name + ".png"
@@ -133,16 +116,17 @@ if __name__ == '__main__':
             except (TypeError, IOError) :
                 print "Error loading: {0} -- skipping {1}...".format(img_mat, img_name)
                 continue
-            edge_points = shape_analysis['edge_points'].astype(np.int32)
-            centroid = shape_analysis['centroid'].astype(np.int32)
+            edge_points = np.ascontiguousarray(shape_analysis['edge_points'], dtype=np.float32)
+            # centroid = shape_analysis['centroid'].astype(np.int32)
             
             try:
                 observed_mat = sio.loadmat(os.path.join(dat_path, data_mat))
             except (TypeError, IOError) :
                 print "Error loading: {0} -- skipping {1}...".format(data_mat, img_name)
                 continue
-            observed = observed_mat['img_dataset'].astype(np.float32)
-        
+            observed = np.ascontiguousarray(observed_mat['img_dataset'], dtype=np.float32)
+            if observed.shape[0] == 0 : continue
+
             img = cv2.imread(os.path.join(img_path, img_file),cv2.IMREAD_UNCHANGED)
             img[(img[:,:,3]==0),0:3] = 0 # Convert alpha transparency to black
           
@@ -153,31 +137,35 @@ if __name__ == '__main__':
             observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
             
             if cond == "bounding_circle" :
+                start = timer()
                 # Generate uniform data in circle around bounding rectangle (same as touchpoint roi)
                 n_pts = observed.shape[0]
                 img_bounds = np.array( [ [0,0], [img.shape[0], 0] , [img.shape[0],img.shape[1]], [0,img.shape[1]] ])
                 bd_circ_cent, bd_circ_rad = cv2.minEnclosingCircle(img_bounds)
-                generated_data_sets = gen_uniform_points_circ(n_sets, n_pts, bd_circ_cent, bd_circ_rad)
-                sio.savemat(out_path+img_name+'_Patient_'+patient+'_generated_uniform_sets.mat', {'gen_datasets':generated_data_sets})
+                generated_data_sets = gen_uniform_points_circle(n_sets, n_pts, bd_circ_cent, bd_circ_rad)
                 
             if cond == "in_shape" :
+                start = timer()
                 # Generate uniform data within shape
                 observed_inshape = []
                 for i in range(observed.shape[0]) :
                     if cv2.pointPolygonTest(edge_points, tuple(observed[i]), measureDist=False) == 1 :
                         observed_inshape.append(observed[i])
-                observed = np.array(observed_inshape) 
+                observed = np.array(observed_inshape, dtype=np.float32) 
                 n_pts = observed.shape[0]
-                generated_data_sets = gen_uniform_points(n_sets, n_pts, edge_points, img.shape)
-                sio.savemat(out_path+img_name+'_Patient_'+patient+'_generated_uniform_sets.mat', {'gen_datasets':generated_data_sets})
+                generated_data_sets = gen_uniform_points_bounds(n_sets, n_pts, edge_points, (0,0), img.shape)
                 
             if cond == "touchpoint_hull" :
+                start = timer()
                 # Generate uniform data within convex hull of touchpoints
                 n_pts = observed.shape[0]
                 observed_hull = np.squeeze(cv2.convexHull(observed))
-                generated_data_sets = gen_uniform_points(n_sets, n_pts, observed_hull, img.shape)
-                sio.savemat(out_path+img_name+'_Patient_'+patient+'_generated_uniform_sets.mat', {'gen_datasets':generated_data_sets})
-    
+                hull_min = tuple( [np.min(observed_hull[:,1]), np.min(observed_hull[:,0])] )
+                hull_max = tuple( [np.max(observed_hull[:,1]), np.max(observed_hull[:,0])] )
+                generated_data_sets = gen_uniform_points_bounds(n_sets, n_pts, observed_hull, hull_min, hull_max)
+
+            sio.savemat(out_path+img_name+'_Patient_'+patient+'_generated_uniform_sets.mat', {'gen_datasets':generated_data_sets})
+
             # Sanity checks
-            print "Generated", img_name, generated_data_sets.shape
-    #        plot_generated(generated_data, img)
+            print "Generated", img_name, "in", timer()-start, "s", generated_data_sets.shape
+            # plot_generated(generated_data_sets, img)
