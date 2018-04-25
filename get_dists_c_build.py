@@ -4,7 +4,7 @@ from cffi import FFI
 ffibuilder = FFI()
 
 ffibuilder.cdef("""void pts2pts(float *, const float *, const float *, int, int);
-                   void cdf(int *, float *, int, int);
+                   void cdf(int *, float *, int, const float *, int);
                    void gen_uniform_bounds(float *, const float *, int, float, float, float, float, int, int);
                    void gen_uniform_circle(float *, float, float, float, int, int);
                 """) 

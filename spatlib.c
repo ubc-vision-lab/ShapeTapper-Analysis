@@ -33,25 +33,25 @@ static int compare (const void * a, const void * b) {
 
 // generates a CDF for feature-transformed set of points (dist from each point to reference object) 
 // at a increasing radius (r) from the reference object (ratio: #points in radius to total #points)
-void cdf(int *out, float *ft_dists, int n_ptsin, int max_r) {
-    int r, curr;
+void cdf(int *out, float *ft_dists, int n_ptsin, const float * rs, int n_rs) {
+    int i, curr;
     out[0] = 0;
 
     qsort(ft_dists, n_ptsin, sizeof(float), &compare);
     
-    for (r=0, curr=0; r < max_r-1; r++) { 
-        while (ft_dists[curr] < r) {
-            out[r]++;
+    for (i=0, curr=0; i < n_rs-1; ++i) { 
+        while (ft_dists[curr] < rs[i]) {
+            out[i]++;
             curr++;
             if (curr == n_ptsin) {
-                int i;
-                for (i=r; i < max_r; ++i) { 
-                    out[i] = n_ptsin;
+                int j;
+                for (j=i; j < n_rs; ++j) { 
+                    out[j] = n_ptsin;
                 }
                 return;
             }
         }
-        out[r+1] = out[r];
+        out[i+1] = out[i];
     }
     return;
 }

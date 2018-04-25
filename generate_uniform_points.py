@@ -30,7 +30,7 @@ from timeit import default_timer as timer
 analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
 img_names = ["blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12",
             "solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12"]
-patient = "MC"   
+patient = "DF"   
 img_path = "./Shapes/"         # path containing shape images
 
 # Parameters
@@ -49,6 +49,7 @@ def plot_generated(generated, img) :
     cv2.imshow('image', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    
     
 #def dilateEdges(edge_points, centroid, scale) :
 #    edges_centered = edge_points - centroid
@@ -114,7 +115,7 @@ if __name__ == '__main__':
             try:
                 shape_analysis = sio.loadmat(os.path.join(mat_path, img_mat))
             except (TypeError, IOError) :
-                print "Error loading: {0} -- skipping {1}...".format(img_mat, img_name)
+                print "Error loading: {0} -- skipping {1}...\n".format(img_mat, img_name)
                 continue
             edge_points = np.ascontiguousarray(shape_analysis['edge_points'], dtype=np.float32)
             # centroid = shape_analysis['centroid'].astype(np.int32)
@@ -122,7 +123,7 @@ if __name__ == '__main__':
             try:
                 observed_mat = sio.loadmat(os.path.join(dat_path, data_mat))
             except (TypeError, IOError) :
-                print "Error loading: {0} -- skipping {1}...".format(data_mat, img_name)
+                print "Error loading: {0} -- skipping {1}...\n".format(data_mat, img_name)
                 continue
             observed = np.ascontiguousarray(observed_mat['img_dataset'], dtype=np.float32)
             if observed.shape[0] == 0 : continue

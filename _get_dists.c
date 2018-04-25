@@ -498,14 +498,14 @@ static void (*_cffi_call_python_org)(struct _cffi_externpy_s *, char *);
 /************************************************************/
 
 static void *_cffi_types[] = {
-/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(float *, float const *, float const *, int, int)
+/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 33), // void()(float *, float const *, float const *, int, int)
 /*  1 */ _CFFI_OP(_CFFI_OP_POINTER, 11), // float *
 /*  2 */ _CFFI_OP(_CFFI_OP_POINTER, 11), // float const *
 /*  3 */ _CFFI_OP(_CFFI_OP_NOOP, 2),
 /*  4 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7), // int
 /*  5 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /*  6 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  7 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(float *, float const *, int, float, float, float, float, int, int)
+/*  7 */ _CFFI_OP(_CFFI_OP_FUNCTION, 33), // void()(float *, float const *, int, float, float, float, float, int, int)
 /*  8 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /*  9 */ _CFFI_OP(_CFFI_OP_NOOP, 2),
 /* 10 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
@@ -516,7 +516,7 @@ static void *_cffi_types[] = {
 /* 15 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 16 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 17 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 18 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(float *, float, float, float, int, int)
+/* 18 */ _CFFI_OP(_CFFI_OP_FUNCTION, 33), // void()(float *, float, float, float, int, int)
 /* 19 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 20 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
 /* 21 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
@@ -524,18 +524,19 @@ static void *_cffi_types[] = {
 /* 23 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 24 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 25 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 26 */ _CFFI_OP(_CFFI_OP_FUNCTION, 32), // void()(int *, float *, int, int)
+/* 26 */ _CFFI_OP(_CFFI_OP_FUNCTION, 33), // void()(int *, float *, int, float const *, int)
 /* 27 */ _CFFI_OP(_CFFI_OP_POINTER, 4), // int *
 /* 28 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 29 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 30 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 31 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 32 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 0), // void
+/* 30 */ _CFFI_OP(_CFFI_OP_NOOP, 2),
+/* 31 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 32 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 33 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 0), // void
 };
 
-static void _cffi_d_cdf(int * x0, float * x1, int x2, int x3)
+static void _cffi_d_cdf(int * x0, float * x1, int x2, float const * x3, int x4)
 {
-  cdf(x0, x1, x2, x3);
+  cdf(x0, x1, x2, x3, x4);
 }
 #ifndef PYPY_VERSION
 static PyObject *
@@ -544,14 +545,16 @@ _cffi_f_cdf(PyObject *self, PyObject *args)
   int * x0;
   float * x1;
   int x2;
-  int x3;
+  float const * x3;
+  int x4;
   Py_ssize_t datasize;
   PyObject *arg0;
   PyObject *arg1;
   PyObject *arg2;
   PyObject *arg3;
+  PyObject *arg4;
 
-  if (!PyArg_UnpackTuple(args, "cdf", 4, 4, &arg0, &arg1, &arg2, &arg3))
+  if (!PyArg_UnpackTuple(args, "cdf", 5, 5, &arg0, &arg1, &arg2, &arg3, &arg4))
     return NULL;
 
   datasize = _cffi_prepare_pointer_call_argument(
@@ -580,13 +583,24 @@ _cffi_f_cdf(PyObject *self, PyObject *args)
   if (x2 == (int)-1 && PyErr_Occurred())
     return NULL;
 
-  x3 = _cffi_to_c_int(arg3, int);
-  if (x3 == (int)-1 && PyErr_Occurred())
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(2), arg3, (char **)&x3);
+  if (datasize != 0) {
+    if (datasize < 0)
+      return NULL;
+    x3 = (float const *)alloca((size_t)datasize);
+    memset((void *)x3, 0, (size_t)datasize);
+    if (_cffi_convert_array_from_object((char *)x3, _cffi_type(2), arg3) < 0)
+      return NULL;
+  }
+
+  x4 = _cffi_to_c_int(arg4, int);
+  if (x4 == (int)-1 && PyErr_Occurred())
     return NULL;
 
   Py_BEGIN_ALLOW_THREADS
   _cffi_restore_errno();
-  { cdf(x0, x1, x2, x3); }
+  { cdf(x0, x1, x2, x3, x4); }
   _cffi_save_errno();
   Py_END_ALLOW_THREADS
 
@@ -860,7 +874,7 @@ static const struct _cffi_type_context_s _cffi_type_context = {
   0,  /* num_enums */
   0,  /* num_typenames */
   NULL,  /* no includes */
-  33,  /* num_types */
+  34,  /* num_types */
   0,  /* flags */
 };
 

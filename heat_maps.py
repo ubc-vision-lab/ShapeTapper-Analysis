@@ -22,11 +22,6 @@ img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
 patient = "MC"
 img_path = "./Shapes/" 
 
-# Heatmap parameters
-rad = 12                    # Touchpoint radius in pixels (default = 12)
-alpha = 0.033               # Transparency value (default=0.033)
-# h_color = (0,0,255,255)   # Touchpoint color (default=(0,155,255,255), orange)
-
 
 ################# Function Definitions #########################################################################
 def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
@@ -47,31 +42,35 @@ def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
     for op in observed :
         o = np.array([int(op[0]),int(op[1])]) - np.flip(canvas_offset,axis=0) #(y,x)
         overlay = canvas.copy()
-        rad = (int) (np.min(img_dims[0:2]) / 12)
-        alpha = np.true_divide(1,2*rad)
+        rad = (int) (np.min(img_dims[0:2]) / 8)
         for i in range(1, rad+1) :
+            alpha = np.true_divide(1,3*rad)
             cv2.circle( overlay, tuple(o), i, 255, thickness=-1, lineType=cv2.LINE_AA )
             cv2.addWeighted(overlay, alpha, canvas, 1 - alpha, 0, canvas)  
 
     heat_map = cv2.applyColorMap(canvas, cv2.COLORMAP_JET)
 
-    # heat_map[heat_map[:,:,0]==128] = [255,255,255]
+    b_channel, g_channel, r_channel = cv2.split(heat_map)
+    alpha_channel = np.ones(b_channel.shape, dtype=b_channel.dtype) * 255 # creating a dummy alpha channel image.
+    heat_map = cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
+    
+    heat_map[heat_map[:,:,0]==128] = [0,0,0,0]
+
+    line_width = np.max(img_dims[0:2])/95
+
+    for mp in ma_points :
+        m = mp - np.flip(canvas_offset,axis=0) #(y,x)
+        cv2.circle( heat_map, tuple(m), line_width, (255,0,255,255), thickness=-1, lineType=cv2.LINE_AA )
+    
+    c = centroid[0] - np.flip(canvas_offset,axis=0) #(y,x)
+    cv2.circle( heat_map, tuple(c), line_width*3, (0,255,0,255), thickness=-1, lineType=cv2.LINE_AA )  
+
+    heat_map[heat_map[:,:,0:4]==[255,255,255]] = [0,0,0,0]
 
     for ep in edge_points :
         e = ep - np.flip(canvas_offset,axis=0) #(y,x)
-        cv2.circle( heat_map, tuple(e), 2, (255,255,255,255), thickness=-1, lineType=cv2.LINE_AA )
-    
-    for mp in ma_points :
-        m = mp - np.flip(canvas_offset,axis=0) #(y,x)
-        cv2.circle( heat_map, tuple(m), 2, (255,0,255,255), thickness=-1, lineType=cv2.LINE_AA )
+        cv2.circle( heat_map, tuple(e), line_width, (255,255,255,255), thickness=-1, lineType=cv2.LINE_AA )
 
-    c = centroid[0] - np.flip(canvas_offset,axis=0) #(y,x)
-    cv2.circle( heat_map, tuple(c), 6, (0,255,0,255), thickness=-1, lineType=cv2.LINE_AA )    
-
-    # cv2.namedWindow('image', cv2.WINDOW_NORMAL)
-    # cv2.imshow('image', heat_map)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
     return heat_map
 
 
@@ -113,6 +112,7 @@ if __name__ == '__main__':
             print "Error loading: {0} -- skipping {1}...".format(obs_mat, img_name)
             continue
         observed = observed_mat['img_dataset'].astype(np.float32)
+        if observed.shape[0] == 0 : continue
         observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
        
         heat_map = makeHeatMap(img.shape, edge_points, ma_points, centroid, observed)

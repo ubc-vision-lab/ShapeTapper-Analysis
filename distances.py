@@ -39,15 +39,17 @@ def points2points_c(points_from,points_to):
     return np.array(ffi.unpack(ds, npf), dtype=np.float32)
 
 
-def cdf_c(points_in, ro_pts, max_r):
+def cdf_c(points_in, ro_pts, regions):
     n_ptsin = points_in.shape[0]
+    n_rs = regions.shape[0]
 
     ft_dists = points2points_c(points_in,ro_pts)
-    out = ffi.new("int[{0}]".format(max_r))# random set
     ftds = ffi.cast("float *", ft_dists.ctypes.data)
-    
-    lib.cdf(out, ftds, n_ptsin, max_r)
-    cdf = np.array(ffi.unpack(out, max_r), dtype=int)
+    rs   = ffi.cast("float *", regions.ctypes.data)
+    out  = ffi.new("int[{0}]".format(n_rs))# random set
+
+    lib.cdf(out, ftds, n_ptsin, rs, n_rs)
+    cdf = np.array(ffi.unpack(out, n_rs), dtype=int)
     return np.true_divide(cdf, n_ptsin)
 
 
@@ -73,18 +75,20 @@ def points2points_np(points_from,points_to):
 
 # cumulative distribution function for "reference object" defined by ro_pts
 # returns ratio of points located within a given distance of the reference object
-def cdf_np(points_in, ro_pts, max_r):
+def cdf_np(points_in, ro_pts, regions):
+    n_rs = regions.shape[0]
+
     # points2points_cmin crashes for points > 250, so fall back to numpy function
     ft_dists = points2points_np(points_in,ro_pts)
     ft_dists = np.sort(ft_dists)
 
-    points_in_region = np.empty(max_r, dtype=int)
+    points_in_region = np.empty(n_rs, dtype=int)
     points_in_region[0] = 0
     idx = 0
     n_ptsin = points_in.shape[0]
 
-    for r in range(max_r-1) :
-        while ft_dists[idx] < r :
+    for r in range(n_rs-1) :
+        while ft_dists[idx] < regions[r] :
             points_in_region[r] += 1
             idx += 1 
             if idx == n_ptsin :

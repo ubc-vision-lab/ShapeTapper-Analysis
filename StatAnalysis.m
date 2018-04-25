@@ -1,8 +1,8 @@
-patient = 'MC2';
+patient = 'DF';
 
 analysis_conds = {'in_shape','bounding_circle','touchpoint_hull'};
 
-shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07','blake_08','blake_09','blake_10','blake_11','blake_12',...
+shapes = {'blake_01','blake_04','blake_06','blake_07','blake_08','blake_09','blake_10','blake_11','blake_12',...
           'solo3','solo5','solo6','solo7','solo9','solo10','solo11','solo12'};
 
 for c=1:3
