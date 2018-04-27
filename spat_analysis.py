@@ -22,12 +22,14 @@ from timeit import default_timer as timer
 
 
 ################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
-analysis_conds = ["bounding_circle","in_shape","touchpoint_hull"]
+analysis_conds = ["bounding_circle","in_shape","touchpoint_hull","patient_fitted"]
 img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
              "blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
-patient = "DF"   
+patients = ["DF","MC","MC2"]  
 img_path = "./Shapes/"         # path containing shape images
-NUM_CDF_STEPS = 100
+out_path_prefix = "D:/ShapeTapper-Analysis/"
+
+NUM_CDF_STEPS = 1000
 
 
 ################# Function Definitions #########################################################################
@@ -50,9 +52,9 @@ def getVarMean(data) :
 
 def get_dists(observed, generated, ma_points, edge_points, centroid) :
     #print "Calculating Observed"
-    observed_ma_dists   = dist.points2points_c(observed,ma_points)
-    observed_edge_dists = dist.points2points_c(observed,edge_points)
-    observed_cent_dists = dist.points2points_c(observed,centroid)
+    observed_ma_dists   = dist.points2points(observed,ma_points)
+    observed_edge_dists = dist.points2points(observed,edge_points)
+    observed_cent_dists = dist.points2points(observed,centroid)
 
     observed_medaxis_data = getVarMean(observed_ma_dists)
     observed_edge_data    = getVarMean(observed_edge_dists)
@@ -64,9 +66,9 @@ def get_dists(observed, generated, ma_points, edge_points, centroid) :
     generated_cent_dists = np.empty(generated.shape[0:2], dtype=np.float32)
     
     for i, point_set in enumerate(generated) :
-        generated_ma_dists[i]   = dist.points2points_c(point_set,ma_points)
-        generated_edge_dists[i] = dist.points2points_c(point_set,edge_points)
-        generated_cent_dists[i] = dist.points2points_c(point_set,centroid)
+        generated_ma_dists[i]   = dist.points2points(point_set,ma_points)
+        generated_edge_dists[i] = dist.points2points(point_set,edge_points)
+        generated_cent_dists[i] = dist.points2points(point_set,centroid)
 
     generated_medaxis_data = getVarMean(generated_ma_dists)
     generated_edge_data    = getVarMean(generated_edge_dists)
@@ -80,18 +82,17 @@ def get_dists(observed, generated, ma_points, edge_points, centroid) :
 
 def get_cdf(ro_pts, regions, uniform, observed, generated) :
     # calculate d-values for main shape
-    ds_uf = dist.cdf_np(uniform, ro_pts, regions)
+    ds_uf = dist.cdf(uniform, ro_pts, regions)
 
     # calculate d-values for observed data
-    ds_o = dist.cdf_c(observed, ro_pts, regions)
+    ds_o = dist.cdf(observed, ro_pts, regions)
 
     # calculate d-values for 100k simulated data sets
     ds_g = np.empty((generated.shape[0],regions.shape[0]), dtype=np.float32)
     for i, point_set in enumerate(generated) :
-        ds_g[i] = dist.cdf_c(point_set, ro_pts, regions)
+        ds_g[i] = dist.cdf(point_set, ro_pts, regions)
 
     return [ds_uf, ds_o, ds_g]
-
 
 def matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path):    
     ################### Load data ###################
@@ -149,17 +150,18 @@ def matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
     regions_bd = np.linspace(0.0, max_r_bd, num=NUM_CDF_STEPS, endpoint=True)
     regions_bd = np.ascontiguousarray(regions_bd, dtype=np.float32)
     
-    max_r_ct = int(np.ceil(bd_circ_radius*np.sqrt(2)))
+    # Use a slightly enlarged regions vector for centroid to catch all points
+    max_r_ct = int(np.ceil(bd_circ_radius*np.sqrt(2))) 
     regions_ct = np.linspace(0.0, max_r_ct, num=NUM_CDF_STEPS, endpoint=True)
     regions_ct = np.ascontiguousarray(regions_ct, dtype=np.float32)
 
     # Calculate spatial CDF data for each Reference Object (Medax, Edge, Centroid)
     start = timer()
-    cdf_ma   = get_cdf(ma_points, regions_ct, shape_points, observed, generated)
+    cdf_ma   = get_cdf(ma_points, regions_bd, shape_points, observed, generated)
     cdf_edge = get_cdf(edge_points, regions_bd, shape_points, observed, generated)
     cdf_cent = get_cdf(centroid, regions_ct, shape_points, observed, generated)
     print "spatial data  :", timer()-start, "s\n"
-    
+
     # Output data for statistical analysis
     sio.savemat(os.path.join(out_path,img_name+'_analysis.mat'),
                 {'n_points': observed.shape[0],
@@ -169,31 +171,33 @@ def matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
                  'generated_medaxis_data' :generated_varmean[0], 
                  'generated_edge_data'    :generated_varmean[1],
                  'generated_centroid_data':generated_varmean[2],
-                 'medaxis_cdf' :[cdf_ma, regions_ct],
+                 'medaxis_cdf' :[cdf_ma, regions_bd],
                  'edge_cdf'    :[cdf_edge, regions_bd],
                  'centroid_cdf':[cdf_cent, regions_ct]})
     
 
 if __name__ == '__main__':
-    
-    mat_path = img_path+"shape_analysis/"          # path containing medial axis mat files
-    obs_path = patient+"/aggregated_observations/" # path containing observed data
-    
-    for cond in analysis_conds :
-        print "Condition:", cond, '\n'
+    for patient in patients :
+        print '\n', "Patient:", patient
+
+        mat_path = img_path+"shape_analysis/"          # path containing medial axis mat files
+        obs_path = patient+"/aggregated_observations/" # path containing observed data
         
-        gen_path = patient+"/generated_uniform_data/"+cond+"/"  # path containing generated uniform data
-        out_path = patient+"/distance_analysis/"+cond+"/"       # output path
+        for cond in analysis_conds :
+            print '\n', "Condition:", cond
+            
+            gen_path = patient+"/generated_uniform_data/"+cond+"/"  # path containing generated uniform data
+            out_path = os.path.join(out_path_prefix,patient+"/distance_analysis/"+cond+"/")    # output path
 
-        try:
-            os.makedirs(out_path)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
+            try:
+                os.makedirs(out_path)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
 
-        for img_name in img_names :
-            print 'Starting', img_name
-            img_mat = img_name + "_shape_analysis.mat"
-            obs_mat = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
-            gen_mat = img_name + "_Patient_"+patient+"_generated_uniform_sets.mat"
-            matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path)
+            for img_name in img_names :
+                print 'Starting', img_name
+                img_mat = img_name + "_shape_analysis.mat"
+                obs_mat = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
+                gen_mat = img_name + "_Patient_"+patient+"_generated_uniform_sets.mat"
+                matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path)

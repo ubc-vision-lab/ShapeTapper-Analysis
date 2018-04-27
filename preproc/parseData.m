@@ -1,4 +1,4 @@
-fileID = fopen("MC\aggregated_observations\Overall_Results.txt");
+fileID = fopen("..\MC\aggregated_observations\Overall_Results.txt");
 C = textscan(fileID,'%s %s %f %f','headerLines',1);
 fclose(fileID);
 
@@ -14,7 +14,7 @@ for i=1:length(img_names)
     shape_dat = dat(strcmp(dat.ImageName, img_names(i)),:);
     img_dataset = shape_dat.XY;
     
-    output_name = ['MC\aggregated_observations\' img_names{i} '_Patient_MC_aggregated_observations.mat'];
+    output_name = ['..\MC\aggregated_observations\' img_names{i} '_Patient_MC_aggregated_observations.mat'];
     
     save(output_name,'img_dataset');
     

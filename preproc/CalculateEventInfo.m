@@ -22,23 +22,35 @@
 %       later transformations can use it for image-relative coordinates
 %       (rather than from the centre)
 
-function event_info = CalculateEventInfo(window_width, window_height, screen_dpi, scaling, shape, img_dim, border_size_inches, event_x, event_y, event_rotation)
-    new_img_diag = window_height * scaling / 100; % what was the diagonal in Unity
-    to_scale = norm(img_dim,2) / new_img_diag; % scaling factor so that original image diagonal will match new image diagonal
+function [A] = CalculateEventInfo(scrnWidth, scrnHeight, dpi, unityScreenMargin, ...
+    rawImgsWidthsAndHeights, scaling, rotation, XPosRawImgsCntrPrcnt,...
+    YPosRawImgsCntrPrcnt)
 
-    border = screen_dpi * border_size_inches; %0.375 inches = ~ 1cm (so 5mm border around to screen)
+%compute the diagonal length of the image presented in unity (in pixels). Note that this
+%is a proportion of the screen height   
+unityImgDiags = transpose(scrnHeight*(scaling/100));
+
+unityMarginPixels = dpi*unityScreenMargin; %0.375 inches = ~ 1cm (so 5mm border around to screen)
+
+%compute the scaling factor to convert the raw image to unity size
+scaleUnty2RawImgs = sqrt(sum(rawImgsWidthsAndHeights.^2,2))./unityImgDiags; 
+
+%compute the total margin along the x- and y-coordinates (screen width and height) in unity pixels
+totXMargin = scrnWidth - unityImgDiags - unityMarginPixels;
+totYMargin = scrnHeight - unityImgDiags - unityMarginPixels;
+
+%compute the x and y positions of the centre of the images in unity space (in pixels)
+XPosCntrUntyImgs = ((totXMargin.*transpose(XPosRawImgsCntrPrcnt/100)) + ...
+    ((unityImgDiags + unityMarginPixels)/2));
+YPosCntrUntyImgs = ((totYMargin.*transpose(YPosRawImgsCntrPrcnt/100)) + ...
+    ((unityImgDiags + unityMarginPixels)/2));
+
+%image coordinate correction to convert the image-centred TP coordinates back to a canvas
+%based one.
+plusX = rawImgsWidthsAndHeights(:,1)/2;
+plusY = rawImgsWidthsAndHeights(:,2)/2;
     
-    allowable_x = window_width - new_img_diag - border; % space where image is allowed, x coordinate
-    img_unity_x = event_x * allowable_x / 100 + (new_img_diag + border)/2;
-
-    allowable_y = window_height - new_img_diag - border;
-    img_unity_y = event_y * allowable_y / 100 + (new_img_diag + border)/2;
-
-    % image coordinate correction
-    plusX = img_dim(1)/2;
-    plusY = img_dim(2)/2;
-    
-    % Unity rotates CCW, MATLAB rotates, CW. Subtract rotation from 360 to
-    % get the matching direction
-    event_info = {to_scale, img_unity_x, img_unity_y, 360-event_rotation, shape, plusX, plusY};
-end
+% Unity rotates CCW, MATLAB rotates, CW. Subtract rotation from 360 to
+% get the matching direction
+A = [scaleUnty2RawImgs XPosCntrUntyImgs YPosCntrUntyImgs transpose(360-rotation) plusX plusY];
+return;

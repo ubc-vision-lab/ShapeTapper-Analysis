@@ -289,7 +289,7 @@ def removeBranches(ima_points, white_points, img_ima_bin, ft_dists, threshold) :
             curr = np.squeeze(n[isNext])
         branch_points = np.array(branch_points)
         # Remove branches which are shorter than ft*thresh
-        branch_len = dist.points2point([branch_points[-1]],branch_points[0])
+        branch_len = dist.points2points([branch_points[-1]],branch_points[0])
         branch_ft = ft_dists[np.where(np.all(white_points==branch_points[-1],axis=1))[0][0]]
         if branch_len < branch_ft*threshold:
             for bp in branch_points :

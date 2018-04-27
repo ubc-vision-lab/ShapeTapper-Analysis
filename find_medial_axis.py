@@ -84,9 +84,9 @@ if __name__ == '__main__':
             ima_points, img_ima_bin = skel.pruneSkeleton(ima_points, img_ima_bin, ft_dists, s_thresh2)
 
 #        # Get distance information for centroid and medial axis points (for statistical analysis of touch data)
-#        dist_edges = np.min(dist.points2points_np(white_points,edge_points), axis=1)
-#        dist_medaxis = np.min(dist.points2points_np(white_points,ima_points),axis=1)
-#        dist_cent = dist.points2point(white_points,centroid)
+#        dist_edges = dist.points2points(white_points,edge_points)
+#        dist_medaxis = dist.points2points(white_points,ima_points)
+#        dist_cent = dist.points2points(white_points,centroid)
 
         # Format data to x-y coordinates (OpenCV uses y-x), remove offset
         ima_points = np.flip(ima_points, axis=1) - [offset,offset]

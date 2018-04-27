@@ -19,7 +19,8 @@ import scipy.io as sio
 ################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
 img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
                 "blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
-patient = "MC"
+patient = "DF"
+patient2 = "MC2"
 img_path = "./Shapes/" 
 
 
@@ -42,7 +43,7 @@ def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
     for op in observed :
         o = np.array([int(op[0]),int(op[1])]) - np.flip(canvas_offset,axis=0) #(y,x)
         overlay = canvas.copy()
-        rad = (int) (np.min(img_dims[0:2]) / 8)
+        rad = (int) (np.min(img_dims[0:2]) / 10)
         for i in range(1, rad+1) :
             alpha = np.true_divide(1,3*rad)
             cv2.circle( overlay, tuple(o), i, 255, thickness=-1, lineType=cv2.LINE_AA )
@@ -54,9 +55,15 @@ def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
     alpha_channel = np.ones(b_channel.shape, dtype=b_channel.dtype) * 255 # creating a dummy alpha channel image.
     heat_map = cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
     
-    heat_map[heat_map[:,:,0]==128] = [0,0,0,0]
+    heat_map[heat_map[:,:,0]==128] = [0,0,0,0] # get blue pixels (bottom of jet color map) & convert to transparent
 
-    line_width = np.max(img_dims[0:2])/95
+    img_mask = np.zeros((int(canvas_size),int(canvas_size),4), dtype=np.uint8)
+    cv2.fillConvexPoly(img_mask, edge_points - np.flip(canvas_offset,axis=0) , (255,255,255,255))
+    img_mask = cv2.bitwise_or(img_mask,heat_map)
+    heat_map[heat_map[:,:,3]==0] = [255,255,255,255]
+    heat_map = cv2.bitwise_and(heat_map,img_mask)
+
+    line_width = np.max(img_dims[0:2])/95 # set line width according to image dimensions
 
     for mp in ma_points :
         m = mp - np.flip(canvas_offset,axis=0) #(y,x)
@@ -65,11 +72,11 @@ def makeHeatMap(img_dims, edge_points, ma_points, centroid, observed) :
     c = centroid[0] - np.flip(canvas_offset,axis=0) #(y,x)
     cv2.circle( heat_map, tuple(c), line_width*3, (0,255,0,255), thickness=-1, lineType=cv2.LINE_AA )  
 
-    heat_map[heat_map[:,:,0:4]==[255,255,255]] = [0,0,0,0]
+    # heat_map[heat_map[:,:,3]==0] = [0,0,0,255] # convert remaining white pixels to transparent
 
-    for ep in edge_points :
-        e = ep - np.flip(canvas_offset,axis=0) #(y,x)
-        cv2.circle( heat_map, tuple(e), line_width, (255,255,255,255), thickness=-1, lineType=cv2.LINE_AA )
+    # for ep in edge_points :
+    #     e = ep - np.flip(canvas_offset,axis=0) #(y,x)
+    #     cv2.circle( heat_map, tuple(e), line_width, (0,0,0,255), thickness=-1, lineType=cv2.LINE_AA )
 
     return heat_map
 
@@ -79,6 +86,7 @@ if __name__ == '__main__':
 
     mat_path = img_path+"shape_analysis/"               # path containing medial axis mat files
     obs_path = "./"+patient+"/aggregated_observations/" # path containing observed data
+    obs_path2 = "./"+patient2+"/aggregated_observations/" # path containing observed data
     
     out_path = "./"+patient+"/heat_maps/"       # output path
     try:
@@ -93,6 +101,7 @@ if __name__ == '__main__':
         img_file = img_name + ".png"
         img_mat = img_name + "_shape_analysis.mat"
         obs_mat = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
+        obs_mat2 = img_name + "_Patient_"+patient2+"_aggregated_observations.mat"
         
         img = cv2.imread(os.path.join(img_path, img_file) ,cv2.IMREAD_UNCHANGED)
         img[(img[:,:,3]==0),0:3] = 0
@@ -114,6 +123,15 @@ if __name__ == '__main__':
         observed = observed_mat['img_dataset'].astype(np.float32)
         if observed.shape[0] == 0 : continue
         observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
-       
+        
+        # try:
+        #     observed_mat2 = sio.loadmat(os.path.join(obs_path2, obs_mat2))
+        # except (TypeError, IOError) :
+        #     print "Error loading: {0} -- skipping {1}...".format(obs_mat2, img_name)
+        #     continue
+        # observed2 = observed_mat2['img_dataset'].astype(np.float32)
+        # observed2[:,1] = img.shape[0]-observed2[:,1] # opencv coordinates use inverted y-axis
+        # observed = np.concatenate((observed, observed2), axis=0) 
+
         heat_map = makeHeatMap(img.shape, edge_points, ma_points, centroid, observed)
         cv2.imwrite(os.path.join(out_path, img_name + '_heat_map.png'),heat_map)
