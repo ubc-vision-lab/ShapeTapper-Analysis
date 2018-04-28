@@ -27,7 +27,7 @@ img_names = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
              "blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
 patients = ["DF","MC","MC2"]  
 img_path = "./Shapes/"         # path containing shape images
-out_path_prefix = "D:/ShapeTapper-Analysis/"
+ddrive_path_prefix = "D:/ShapeTapper-Analysis/"
 
 NUM_CDF_STEPS = 1000
 
@@ -94,7 +94,7 @@ def get_cdf(ro_pts, regions, uniform, observed, generated) :
 
     return [ds_uf, ds_o, ds_g]
 
-def matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path):    
+def matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, obs_mat2, obs_path2, gen_mat, gen_path, out_path):    
     ################### Load data ###################
 
     # Read in the image 
@@ -114,7 +114,7 @@ def matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_ma
     if (observed_mat is None) : return
     observed = np.ascontiguousarray(observed_mat['img_dataset'].astype(np.float32))
     observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis (top-left origin)
-    
+
     # Load generated uniform data
     generated_mat = load_mat(gen_path, gen_mat, img_name)
     if (generated_mat is None) : return
@@ -186,8 +186,8 @@ if __name__ == '__main__':
         for cond in analysis_conds :
             print '\n', "Condition:", cond
             
-            gen_path = patient+"/generated_uniform_data/"+cond+"/"  # path containing generated uniform data
-            out_path = os.path.join(out_path_prefix,patient+"/distance_analysis/"+cond+"/")    # output path
+            gen_path = os.path.join(ddrive_path_prefix,patient+"/generated_uniform_data/"+cond+"/")  # path containing generated uniform data
+            out_path = os.path.join(ddrive_path_prefix,patient+"/distance_analysis/"+cond+"/")       # output path
 
             try:
                 os.makedirs(out_path)
@@ -200,4 +200,4 @@ if __name__ == '__main__':
                 img_mat = img_name + "_shape_analysis.mat"
                 obs_mat = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
                 gen_mat = img_name + "_Patient_"+patient+"_generated_uniform_sets.mat"
-                matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, gen_mat, gen_path, out_path)
+                matAnalysis(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, obs_mat2, obs_path2, gen_mat, gen_path, out_path)

@@ -29,7 +29,7 @@ from timeit import default_timer as timer
 ################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
 analysis_conds = ["bounding_circle","in_shape","touchpoint_hull","patient_fitted"]
 img_names = ["blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12",
-            "solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12"]
+             "solo5","solo6","solo7","solo9","solo10","solo11","solo12"]
 patients = ["DF","MC","MC2"]   
 img_path = "./Shapes/"         # path containing shape images
 out_path_prefix = "D:/ShapeTapper-Analysis/"
@@ -86,10 +86,10 @@ def get_scaling_factor(observed, edge_points, centroid) :
         edge_pt_ref = np.where(dist.points2points(edge_points,observed_oob) == dilate_dist)
 
         # May be necessary to increase the interval of equality due to float rounding error
-        almost_equal = 0.01 # increase gradually to avoid finding multiple edge points
+        almost_equal = 0.001 # increase gradually to avoid finding multiple edge points
         while edge_pt_ref[0].shape[0] == 0 :
             edge_pt_ref = np.where(np.abs(dist.points2points(edge_points,observed_oob)-dilate_dist)<=almost_equal)
-            almost_equal += 0.01
+            almost_equal += 0.001
 
         # Scaling factor is the amount which that edge point must be expanded to fit (dist_idx)-th percentile point
         edge_pt_ref_dist = dist.points2points(np.array([edge_points[edge_pt_ref]]),centroid)
@@ -142,6 +142,7 @@ def gen_points(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, out_pat
     if observed.shape[0] == 0 : return
     observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
     
+
     ################### Random point generation ################### 
 
     generated_data_sets = []
@@ -218,4 +219,5 @@ if __name__ == '__main__':
                 img_file = img_name + ".png"
                 img_mat  = img_name + "_shape_analysis.mat"
                 obs_mat  = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
+
                 gen_points(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, out_path)
