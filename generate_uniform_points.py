@@ -11,9 +11,9 @@ In shape        - All points within the boundary of the shape itself
 Touchpoint hull - All points within a space defined by the perimeter of the touchpoints
 
 These sets are specific to each patient's data set, so this script must be run before
-running mat_analysis.py
+running spatial_analysis.py
 
-Generated sets will be saved in the directory "generated_uniform_sets" with a subdirectory
+Generated sets will be saved in the directory "uniform_points with a subdirectory
 for each shape mask
 
 @author: Jamie Dunkle
@@ -23,33 +23,13 @@ import cv2
 import os, errno
 import numpy as np
 import scipy.io as sio
-import distances as dist
+import random_point_lib as rp
+import distance_lib as dist
+from ShapeIO import ShapeIO
 from timeit import default_timer as timer
-
-################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS
-analysis_conds = ["bounding_circle","in_shape","touchpoint_hull","patient_fitted"]
-img_names = ["blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12",
-             "solo5","solo6","solo7","solo9","solo10","solo11","solo12"]
-patients = ["DF","MC","MC2"]   
-img_path = "./Shapes/"         # path containing shape images
-out_path_prefix = "D:/ShapeTapper-Analysis/"
-
-# Parameters
-n_sets = 100000   # number of uniform data sets to generate; each data set contains a number of uniform points
-                  # equal to the number of observed points for that shape
-
 
 
 ################# Function Definitions #########################################################################
-def load_mat(mat_path, mat_name, img_name) :
-    try:
-        dat = sio.loadmat(os.path.join(mat_path, mat_name))
-    except (TypeError, IOError) :
-        print "Error loading: {0} -- skipping {1}...\n".format(mat_name, img_name)
-        return None
-    return dat
-
-
 def plot_generated(generated, img) :
     for i in range(generated.shape[0]):
         for p in generated[i] :
@@ -85,73 +65,72 @@ def get_scaling_factor(observed, edge_points, centroid) :
         # Find edge point closest to (dist_idx)-th most OOB point
         edge_pt_ref = np.where(dist.points2points(edge_points,observed_oob) == dilate_dist)
 
-        # May be necessary to increase the interval of equality due to float rounding error
-        almost_equal = 0.001 # increase gradually to avoid finding multiple edge points
+        # May be necessary to use an interval of equality to find closest edge point, due to float rounding error
+        almost_equal = 0.0001 # increase gradually to avoid finding multiple edge points
         while edge_pt_ref[0].shape[0] == 0 :
             edge_pt_ref = np.where(np.abs(dist.points2points(edge_points,observed_oob)-dilate_dist)<=almost_equal)
-            almost_equal += 0.001
+            almost_equal += 0.0001
 
         # Scaling factor is the amount which that edge point must be expanded to fit (dist_idx)-th percentile point
         edge_pt_ref_dist = dist.points2points(np.array([edge_points[edge_pt_ref]]),centroid)
         return (edge_pt_ref_dist[0] + dilate_dist) / edge_pt_ref_dist[0]
 
-
-def dilate_edges(edge_points, centroid, scale) :
-   edges_centered = edge_points - centroid
-   edges_scaled = (edges_centered * scale).astype(int) # floor
-   return edges_scaled + centroid
+# Expands edge points
+def dilate_edges(edge_points, center_point, scale) :
+   edges_centered = edge_points - center_point
+   edges_scaled = edges_centered * scale
+   return edges_scaled + center_point
 
 
 # generates uniformly distributed data points inside a region defined by edge_points
 def gen_uniform_points_bounds(n_sets, n_pts, edge_points, mins, maxes) :
     uniform_points = np.zeros((n_sets,n_pts,2)) # output array
-
     for i in range(n_sets) :
-        dist.gen_uniform_bounds(edge_points, mins[1], maxes[1], mins[0], maxes[0], n_pts, uniform_points[i])
+        rp.gen_uniform_bounds(edge_points, mins[1], maxes[1], mins[0], maxes[0], n_pts, uniform_points[i])
     return uniform_points
 
 
 # generates uniformly distributed data points inside a circle
 def gen_uniform_points_circle(n_sets, n_pts, center, radius):
     uniform_points = np.empty((n_sets,n_pts,2)) # output array
-    
     for i in range(n_sets) :
-        dist.gen_uniform_circle(center[1], center[0], radius, n_pts, uniform_points[i])
-
+        rp.gen_uniform_circle(center[1], center[0], radius, n_pts, uniform_points[i])
     return uniform_points
 
 
-def gen_points(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, out_path) :
-    ################### Load data ###################
+################### Random point generation ####################################################################
+def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
 
-    # Read in the image 
-    img_file = img_name + ".png"
-    img = cv2.imread(os.path.join(img_path, img_file),cv2.IMREAD_UNCHANGED)
-    img[(img[:,:,3]==0),0:3] = 0 # Convert alpha transparency to black
+    if patient is None :
+        print "Error in generateUniformData() : no patient name specified."
+        return
 
-    # Load shape analysis data (medial axis, edge, centroid)
-    shape_analysis = load_mat(mat_path, img_mat, img_name)
-    if (shape_analysis is None) : return
-    edge_points = np.ascontiguousarray(shape_analysis['edge_points'], dtype=np.float32)
-    centroid = shape_analysis['centroid'].astype(np.float32)
-    
-    # Load observed touchpoint data
-    observed_mat = load_mat(obs_path, obs_mat, img_name)
-    if (observed_mat is None) : return
-    observed = np.ascontiguousarray(observed_mat['img_dataset'], dtype=np.float32)
-    if observed.shape[0] == 0 : return
-    observed[:,1] = img.shape[0]-observed[:,1] # opencv coordinates use inverted y-axis
-    
+    if cond is None :
+        print "Error in generateUniformData() : no condition(s) specified."
+        return
 
-    ################### Random point generation ################### 
+    if shape.observed is None :
+        print "Error in generateUniformData() : no observed touch points found for {0}. Please check data files.".format(shape.name)
+        return
+
+    out_path = os.path.join(out_path, patient, "uniform_points", cond)
+    try:
+        os.makedirs(out_path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
     generated_data_sets = []
+
+    observed = shape.observed
+    edge_points = shape.edge_points
+    centroid = shape.centroid
 
     # Generate uniform data in circle around bounding rectangle (same as touchpoint roi)
     if cond == "bounding_circle" :
         start = timer()
         n_pts = observed.shape[0]
-        img_bounds = np.array( [ [0,0], [img.shape[0], 0] , [img.shape[0],img.shape[1]], [0,img.shape[1]] ])
+        img_bounds = np.array( [ [0,0], [shape.dims[0], 0] , [shape.dims[0],shape.dims[1]], [0,shape.dims[1]] ])
         bd_circ_cent, bd_circ_rad = cv2.minEnclosingCircle(img_bounds)
         generated_data_sets = gen_uniform_points_circle(n_sets, n_pts, bd_circ_cent, bd_circ_rad)
 
@@ -165,7 +144,7 @@ def gen_points(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, out_pat
                 observed_inshape.append(tp)
         observed = np.array(observed_inshape, dtype=np.float32) 
         n_pts = observed.shape[0]
-        generated_data_sets = gen_uniform_points_bounds(n_sets, n_pts, edge_points, (0,0), img.shape)
+        generated_data_sets = gen_uniform_points_bounds(n_sets, n_pts, edge_points, (0,0), shape.dims)
 
     # Generate uniform data within convex hull of touchpoints    
     if cond == "touchpoint_hull" :
@@ -182,42 +161,38 @@ def gen_points(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, out_pat
         n_pts = observed.shape[0]
 
         # Dialate edge points to include points within a certain limit outside the shape
-        scale = get_scaling_factor(observed, edge_points, centroid)
-        edge_points_d = dilate_edges(edge_points, centroid, scale)
+        scale  = get_scaling_factor(observed, edge_points, centroid)
+        center = np.array([shape.dims[0]/2, shape.dims[1]/2], dtype=np.float32)
+        edge_points_d = dilate_edges(edge_points, center, scale)
 
-        mins_d  = tuple( [centroid[0,1] - img.shape[0]*scale/2, centroid[0,0] - img.shape[1]*scale/2] )
-        maxes_d = tuple( [centroid[0,1] + img.shape[0]*scale/2, centroid[0,0] + img.shape[1]*scale/2] )
+        mins_d  = tuple( [center[0] - shape.dims[0]*scale/2, center[1] - shape.dims[1]*scale/2] )
+        maxes_d = tuple( [center[0] + shape.dims[0]*scale/2, center[1] + shape.dims[1]*scale/2] )
         generated_data_sets = gen_uniform_points_bounds(n_sets, n_pts, edge_points_d, mins_d, maxes_d)
 
     # Sanity checks
-    print "Generated", img_name, "in", timer()-start, "s", generated_data_sets.shape
-    # plot_generated(generated_data_sets, img)
+    print "Generated", shape.name, "in", timer()-start, "s", generated_data_sets.shape
+    # plot_generated(generated_data_sets, shape.img.copy())
 
-    sio.savemat(out_path+img_name+'_Patient_'+patient+'_generated_uniform_sets.mat', 
-                {'gen_datasets':generated_data_sets})
+    if shape.pair_mapping is not None :
+        out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
+    else :
+        out_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
+    
+    sio.savemat( os.path.join(out_path, out_fname), {'unif_datasets':generated_data_sets} )
 
 
 
-if __name__ == '__main__':              
-    for patient in patients :
-        print '\n', "Patient:", patient
+if __name__ == '__main__':
 
-        mat_path = img_path+"shape_analysis/"
-        obs_path = "./"+patient+"/aggregated_observations/"
+    img_names  = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
+                  "blake_01","blake_03","blake_04","blake_06","blake_07","blake_08","blake_09","blake_10","blake_11","blake_12"]
 
-        for cond in analysis_conds :
-            print '\n', "Condition:", cond
+    conditions = ["bounding_circle","in_shape","touchpoint_hull","patient_fitted"]
+    patients   = ["DF","MC"]
 
-            out_path = os.path.join(out_path_prefix,patient+"/generated_uniform_data/"+cond+"/")
-            try:
-                os.makedirs(out_path)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
+    in_path  = "D:/ShapeTapper-Analysis/"
+    out_path = "D:/ShapeTapper-Analysis/"
 
-            for img_name in img_names :
-                img_file = img_name + ".png"
-                img_mat  = img_name + "_shape_analysis.mat"
-                obs_mat  = img_name + "_Patient_"+patient+"_aggregated_observations.mat"
+    shapes = ShapeIO(in_path, out_path, img_names)
 
-                gen_points(img_name, img_path, img_mat, mat_path, obs_mat, obs_path, out_path)
+    shapes.run(generateUniformData, patients, conditions)

@@ -4,8 +4,8 @@ import os, errno
 import cv2
 import numpy as np
 import scipy.io as sio
-import distances as dist
-import skeletonize as skel
+import distance_lib as dist
+import skeletonize_lib as skel
 #from timeit import default_timer as timer
     
 ################## Globals - CHANGE THESE TO RUN ON SPECIFIC SUBJECTS AND SHAPE SETS

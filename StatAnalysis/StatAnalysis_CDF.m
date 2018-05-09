@@ -3,13 +3,13 @@ clear
 patient = 'MC';
 dat_path = 'D:\ShapeTapper-Analysis\';
 
-analysis_conds = {'patient_fitted'};%{'in_shape','bounding_circle','touchpoint_hull'};
+analysis_conds = {'in_shape'};%{'in_shape','bounding_circle','touchpoint_hull','patient_fitted'};
 
 shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07','blake_08','blake_09','blake_10','blake_11','blake_12'};
 
 % Groups to compare significance measures
-shape_group_1 = {'blake_04','blake_06','blake_08'};
-shape_group_2 = {'blake_03','blake_07','blake_10'};
+shape_group_1 = {'blake_04'};%{'blake_06','blake_08'};
+shape_group_2 = {};%{'blake_03','blake_07'};
 n_shapes   = length(shapes);
 n_shapes_1 = length(shape_group_1);
 n_shapes_2 = length(shape_group_2);
@@ -18,7 +18,7 @@ n_shapes_2 = length(shape_group_2);
 gnums_1 = erase(shape_group_1,"blake_");
 gnums_2 = erase(shape_group_2,"blake_");
 
-ro_fields = {"medaxis_cdf","edge_cdf","centroid_cdf"};
+ro_fields = {"medaxis_cdf"};
 line_types = {'--',':','-.'};
       
 for c=1:length(analysis_conds)
@@ -36,7 +36,6 @@ for c=1:length(analysis_conds)
             data = load(dat_file);
 
             expected_cdf = data.(ro_fields{ro}){1,1}{1,1};
-            cdf_mean_1(i,:) = expected_cdf;
             observed_cdf = data.(ro_fields{ro}){1,1}{1,2};
 %             cdf_axis = data.(ro_fields{ro}){1,2};
 
@@ -125,8 +124,8 @@ for c=1:length(analysis_conds)
         leg=legend(leg_txt);
         set(leg,'Interpreter', 'none')
         saveas(group_avg_cdf, strjoin(["figures\" string(patient), ro_fields{ro}, "group_averages.png"], "_"));
-    
-        %%%%%% PLOT GROUP 1 & 2 EXPECTED VS OBSERVED %%%%%%
+        
+        %%%%% PLOT GROUP 1 & 2 EXPECTED VS OBSERVED %%%%%%
         exp_obs_cdfs = figure; hold on
         t = title(strcat("Expected vs Observed CDF (", erase(ro_fields{ro},"_cdf"),") by Group"));
         set(t,'Interpreter', 'none')
@@ -142,9 +141,9 @@ for c=1:length(analysis_conds)
                    '{\color{blue} o } Group 2: 03, 07, 10'},...
                   'HorizontalAlignment' ,'right','EdgeColor', 'k');
         saveas(exp_obs_cdfs, strjoin(["figures\"  string(patient), ro_fields{ro}, "expected_vs_observed.png"], "_"));
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-        %%%%%% Test significance across groups %%%%%%
+        %%%%% Test significance across groups %%%%%%
         pvals.dplus.(ro_fields{ro}) = zeros(2,2);
         dplus_1to1 = KernelDistApproximator(mean(dplus_u_g1)', mean(dplus_o_g1(:,1)));
         dplus_2to2 = KernelDistApproximator(mean(dplus_u_g2)', mean(dplus_o_g2(:,1)));
