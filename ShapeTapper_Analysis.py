@@ -5,14 +5,35 @@ from generate_figures import plotHeatMap, plotMedialAxis, plotMappedShapes
 from gen_cdf_figures import plotCDFFig
  
 ################## Globals - CHANGE THESE #######################################
-# img_names  = ["solo3","solo5","solo6","solo7","solo9","solo10","solo11","solo12",
-#              "blake_01","blake_03","blake_04","blake_06","blake_07",
-#              "blake_08","blake_09","blake_10","blake_11","blake_12"]
-img_names  = [ ["blake_04","blake_11"], 
-               ["blake_06","blake_11"]]
+img_names = ["blake_01","blake_03","blake_04","blake_06","blake_07",
+             "blake_08","blake_09","blake_10","blake_11","blake_12"]
 
-conditions = ["bounding_circle","in_shape","touchpoint_hull","patient_fitted"]
+### DF pairs
+# img_names  = [ ["blake_04","blake_07"],
+#                ["blake_07","blake_04"],
+#                ["blake_11","blake_07"],
+#                ["blake_07","blake_11"],
+#                ["blake_10","blake_07"],
+#                ["blake_07","blake_10"],
+#                ["blake_04","blake_10"],
+#                ["blake_10","blake_04"] ]
+
+### MC pairs
+# img_names  = [ ["blake_03","blake_07"],
+#                ["blake_07","blake_03"],
+#                ["blake_04","blake_07"],
+#                ["blake_07","blake_04"],
+#                ["blake_10","blake_07"],
+#                ["blake_07","blake_10"],
+#                ["blake_04","blake_10"],
+#                ["blake_10","blake_04"]]
+
+conditions = ["in_shape", "bounding_circle", "patient_fitted", "normal_distribution", "touchpoint_hull"]
+# conditions = ["in_shape"]
+
 patients   = ["DF","MC"]
+# patients   = ["DF"]
+# patients   = ["MC"]
 
 in_path  = "D:\\ShapeTapper-Analysis\\"
 out_path = "D:\\ShapeTapper-Analysis\\"
@@ -26,7 +47,7 @@ if __name__ == '__main__':
 
     # shapes.run(plotHeatMap, patients)
 
-    shapes.run(plotMappedShapes, patients)
+    # shapes.run(plotMappedShapes, patients)
 
     # shapes.run(plotCDFFig, patients)
 

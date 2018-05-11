@@ -104,8 +104,8 @@ def plotCDFFig(shape, out_path, patient, cond=None):
     img = shape.img.copy()
 
     observed = shape.observed
-    medial_axis = shape.medial_axis.astype(np.uint32)
-    edge_points = shape.edge_points.astype(np.uint32)
+    medial_axis = shape.medial_axis.astype(np.float32)
+    edge_points = shape.edge_points.astype(np.int32)
 
     # Trim out of shape touchpoints for presentation
     observed_inshape = [] 

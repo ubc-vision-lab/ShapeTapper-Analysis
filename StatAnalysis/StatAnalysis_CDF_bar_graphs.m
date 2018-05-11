@@ -3,9 +3,10 @@ clear
 patients = {'DF','MC'};
 dat_path = 'D:\ShapeTapper-Analysis\';
 
-analysis_conds = {'patient_fitted'};%{'in_shape','bounding_circle','touchpoint_hull','patient_fitted'};
+analysis_conds = {'in_shape','bounding_circle','touchpoint_hull','patient_fitted'};
 
-shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07','blake_08','blake_09','blake_10','blake_11','blake_12'};
+shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07',...
+          'blake_08','blake_09','blake_10','blake_11','blake_12'};
 
 % Groups to compare significance measures
 % shape_group_1 = {'blake_04'};%{'blake_06','blake_08'};
@@ -29,10 +30,12 @@ for c=1:length(analysis_conds)
     dvals.shape_index = shapes;
     
     for ro=1:length(ro_fields)
-
+        
+        out_path = [dat_path '\figures\'];
+        
         for p=1:length(patients)
             
-            in_path  = [dat_path patients{p} '\distance_analysis\' analysis_conds{c} '\'];
+            in_path  = [dat_path patients{p} '\spatial_analysis\' analysis_conds{c} '\'];
             
             %%%%%% ALL BLAKE D+/D-s %%%%%%
             dplus_obs   = single(zeros(n_shapes,1));
@@ -41,7 +44,7 @@ for c=1:length(analysis_conds)
             dminus_unif = single(zeros(n_shapes,100000));
             
             for i=1:n_shapes
-                dat_file = [in_path shapes{i} '_analysis.mat'];
+                dat_file = [in_path shapes{i}  '_Patient_' patients{p} '_spatial_analysis_' analysis_conds{c} '.mat'];
                 try
                     data = load(dat_file);
                 catch ME
@@ -120,7 +123,7 @@ for c=1:length(analysis_conds)
         l = legend([s(1) s(2) e(1), e(2) ], leg_labels, 'FontSize', 15, 'location', 'northwest');
         title(strcat(ro_titles{ro}, " D+ Values, Observed vs Uniform"), 'FontSize', 18);
         set(fig1, 'position',[10 10 1200 800]);
-        saveas(fig1,strcat("figures\", ro_ftitles{ro},"_DPlus_BarPlot.png"));
+        saveas(fig1,strcat(out_path,shapes{i},"_",analysis_conds{c},"_",ro_ftitles{ro},"_DPlus_BarPlot.png"));
         
         %%%%%%% PLOT D- BAR GRAPH %%%%%%%%%%%%%%%%
         fig2 = figure; hold on
@@ -158,7 +161,7 @@ for c=1:length(analysis_conds)
         l = legend([s(1) s(2) e(1), e(2) ], leg_labels, 'FontSize', 15, 'location', 'southwest');
         title(strcat(ro_titles{ro}, " D- Values, Observed vs Uniform"), 'FontSize', 18);
         set(fig2, 'position',[10 10 1200 800]);
-        saveas(fig2,strcat("figures\", ro_ftitles{ro},"_DMinus_BarPlot.png"));
+        saveas(fig2,strcat(out_path,shapes{i},"_",analysis_conds{c},"_",ro_ftitles{ro},"_DMinus_BarPlot.png"));
     end % RO loop 2 (plots)
     
 end % condition loop

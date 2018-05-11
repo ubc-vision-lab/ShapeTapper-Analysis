@@ -30,10 +30,14 @@ from timeit import default_timer as timer
 
 
 ################# Function Definitions #########################################################################
-def plot_generated(generated, img) :
+def plot_generated(generated, edge_points, img) :
     for i in range(generated.shape[0]):
         for p in generated[i] :
-            cv2.circle( img, tuple([int(p[0]),int(p[1])]), 1, (0,0,255,255), thickness=-1 ) 
+            cv2.circle( img, tuple([int(p[0]),int(p[1])]), 1, (0,0,255,255), thickness=-1, lineType=cv2.LINE_AA ) 
+
+    for e in edge_points :
+        cv2.circle( img, (int(e[0]),int(e[1])), 1, (255,0,0,255), thickness=-1, lineType=cv2.LINE_AA )
+
     cv2.namedWindow('image', cv2.WINDOW_NORMAL)
     cv2.imshow('image', img)
     cv2.waitKey(0)
@@ -97,6 +101,13 @@ def gen_uniform_points_circle(n_sets, n_pts, center, radius):
         rp.gen_uniform_circle(center[1], center[0], radius, n_pts, uniform_points[i])
     return uniform_points
 
+# generates uniformly distributed data points inside a circle
+def gen_uniform_points_cent_normal(n_sets, n_pts, center, bd_center, bd_radius, std) :
+    uniform_points = np.empty((n_sets,n_pts,2)) # output array
+    for i in range(n_sets) :
+        rp.gen_uniform_cent_normal(center[0], center[1], bd_center[1], bd_center[0], bd_radius, n_pts, std[0], std[1], uniform_points[i])
+    return uniform_points
+
 
 ################### Random point generation ####################################################################
 def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
@@ -134,6 +145,17 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
         bd_circ_cent, bd_circ_rad = cv2.minEnclosingCircle(img_bounds)
         generated_data_sets = gen_uniform_points_circle(n_sets, n_pts, bd_circ_cent, bd_circ_rad)
 
+     # Generate data normal distribution from the centroid (within the bounding circle as above)
+    if cond == "normal_distribution" :
+        start = timer()
+        n_pts = observed.shape[0]
+        img_bounds = np.array( [ [0,0], [shape.dims[0], 0] , [shape.dims[0],shape.dims[1]], [0,shape.dims[1]] ])
+        bd_circ_cent, bd_circ_rad = cv2.minEnclosingCircle(img_bounds)
+        observed = observed.astype(np.float64)
+        std = np.std(observed, axis=0)
+        cent = centroid[0].astype(np.float64)
+        generated_data_sets = gen_uniform_points_cent_normal(n_sets, n_pts, cent, bd_circ_cent, bd_circ_rad, std).astype(np.float32)
+ 
     # Generate uniform data within shape   
     if cond == "in_shape" :
         start = timer()
@@ -170,8 +192,8 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
         generated_data_sets = gen_uniform_points_bounds(n_sets, n_pts, edge_points_d, mins_d, maxes_d)
 
     # Sanity checks
-    print "Generated", shape.name, "in", timer()-start, "s", generated_data_sets.shape
-    # plot_generated(generated_data_sets, shape.img.copy())
+    print "Generated {0} in {1}s {2}".format(shape.name, timer()-start, generated_data_sets.shape)
+    # plot_generated(generated_data_sets, edge_points, shape.img.copy())
 
     if shape.pair_mapping is not None :
         out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'

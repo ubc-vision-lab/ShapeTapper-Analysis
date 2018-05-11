@@ -59,3 +59,21 @@ def gen_uniform_circle(cent_x, cent_y, rad, n_pts, rands) :
                 rands[i,0] = rx
                 rands[i,1] = ry
                 break
+
+
+# Generates n random coordinates with a normal distribution from center, within bounding circle
+# Circle: center (x,y) = (dims[0], dims[1]) , radius = dims[2]
+@jit(nopython=True, cache=True)
+def gen_uniform_cent_normal(cent_x, cent_y, bd_cent_x, bd_cent_y, rad, n_pts, std_x, std_y, rands) :
+    rad_sq = rad * rad
+
+    for i in range(n_pts) :
+        while (1) :
+            rx = np.random.normal(cent_x, std_x)
+            ry = np.random.normal(cent_y, std_y)
+            dx = rx - bd_cent_x
+            dy = ry - bd_cent_y
+            if not ( (dx*dx) + (dy*dy) > rad_sq ) :
+                rands[i,0] = rx
+                rands[i,1] = ry
+                break

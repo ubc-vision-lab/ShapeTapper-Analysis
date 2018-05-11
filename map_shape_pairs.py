@@ -27,24 +27,24 @@ class Transform :
 
 ################# Function Definitions #########################################################################
 def rotate_points(points, tf, dims) :
-    if len(points)==0 : return None
+    if points.shape[0]==0 : return None
     rotation = cv2.getRotationMatrix2D((0,0), tf.degree, tf.scale)
     points = np.ascontiguousarray(points - np.array([dims[1]/2, dims[0]/2]), dtype=np.float32)
     z = np.ones((points.shape[0],1), dtype=np.float32) # need a column of ones for affine transform
     points = np.append(points, z, axis=1)
     points_rot = np.array(np.matmul(rotation, points.transpose())).transpose(1,0)
-    return points_rot + np.flip(tf.offset,axis=0)
+    return (points_rot + np.flip(tf.offset,axis=0)).astype(np.float32)
 
 
 def fit_ro(img_from_dims, img_from_ro, img_to_dims, img_to_ro, usefast=1) :
     
     # Get scaling factor (by area) to scale shape_from to the size of shape_to
-    area_from = img_from_dims[0] * img_from_dims[1] 
-    area_to   = img_to_dims[0] * img_to_dims[1] 
-    scale     = np.true_divide(area_to, area_from)
-    # len_from = max(img_from_dims) 
-    # len_to   = max(img_to_dims)
-    # scale    = np.true_divide(len_to, len_from)
+    # area_from = img_from_dims[0] * img_from_dims[1] 
+    # area_to   = img_to_dims[0] * img_to_dims[1] 
+    # scale     = np.true_divide(area_to, area_from)
+    len_from = max(img_from_dims) 
+    len_to   = max(img_to_dims)
+    scale    = np.true_divide(len_to, len_from)
 
     # Create scaled rotation matrices for angles 0:360, apply to medial axis of shape_from
     rots = range(360)
@@ -66,7 +66,7 @@ def fit_ro(img_from_dims, img_from_ro, img_to_dims, img_to_ro, usefast=1) :
         inc = 10
         ro2ro_1stpass = np.empty((img_to_dims[0], img_to_dims[1], 360/inc))
         for i in range(img_to_dims[0]) :
-            print i+1, '/', img_to_dims[0]
+            # print i+1, '/', img_to_dims[0]
             for j in range(img_to_dims[1]):
                 ro_from_rot = ro_rots[range(0,360,inc)].reshape(-1, ro_rots.shape[-1]) + offsets[i,j]
                 dist_to_ros = dist.points2points(ro_from_rot, img_to_ro).reshape((360/inc,ro_rots.shape[1]))
@@ -85,9 +85,9 @@ def fit_ro(img_from_dims, img_from_ro, img_to_dims, img_to_ro, usefast=1) :
     else :
         # ONE PASS METHOD - POTENTIALLY MORE ACCURATE BUT MUCH MUCH SLOWER ####################################
 #        ro2ro = np.empty((img_to_dims[1], img_to_dims[0], 360))
-        ro2ro = np.empty((img_to_dims[1], img_to_dims[0], 360))
-        for i in range(img_to_dims[1]) :
-            print i+1, '/', img_to_dims[1]
+        ro2ro = np.empty((img_to_dims[0], img_to_dims[1], 360))
+        for i in range(img_to_dims[0]) :
+            # print i+1, '/', img_to_dims[1]
             for j in range(img_to_dims[0]) :
                 ro_from_rot  = ro_rots.reshape(-1, ro_rots.shape[-1]) + offsets[i,j] # flatten all rotated ROs
                 ro2ro[i,j,:] = np.sum(dist.points2points(ro_from_rot, img_to_ro).reshape(ro_rots.shape[0:2]), axis=1)
@@ -100,3 +100,8 @@ def fit_ro(img_from_dims, img_from_ro, img_to_dims, img_to_ro, usefast=1) :
     
     tf_out = Transform(degree_min, offset_min, scale)
     return tf_out
+
+
+
+if __name__ == '__main__':
+    pass

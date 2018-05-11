@@ -45,6 +45,7 @@ def plotHeatMap(shape, out_path, patient, cond=None) :
 
     img_bounds = np.array( [ [0,0], [shape.dims[0], 0] , [shape.dims[0],shape.dims[1]], [0,shape.dims[1]] ])
     circ_cent, circ_rad = cv2.minEnclosingCircle(img_bounds)
+    circ_rad = circ_rad * 1.2
     circ_bd_x = [np.floor(circ_cent[1] - circ_rad), np.ceil(circ_cent[1] + circ_rad)]
     circ_bd_y = [np.floor(circ_cent[0] - circ_rad), np.ceil(circ_cent[0] + circ_rad)]
     canvas_size = circ_bd_x[1] - circ_bd_x[0]
@@ -59,13 +60,15 @@ def plotHeatMap(shape, out_path, patient, cond=None) :
     for op in observed :
         o = np.array([int(op[0]),int(op[1])]) - np.flip(canvas_offset,axis=0) #(y,x)
         overlay = canvas.copy()
-        rad = (int) (np.min(shape.dims[0:2]) / 10) # point radius
+        rad = (int) (np.min(shape.dims[0:2]) / 12)#(observed.shape[0]/22)) # point radius
         for i in range(1, rad+1) :
-            alpha = np.true_divide(1,3*rad)
+            alpha = np.true_divide(1,4*rad)
             cv2.circle( overlay, tuple(o), i, 255, thickness=-1, lineType=cv2.LINE_AA )
             cv2.addWeighted(overlay, alpha, canvas, 1 - alpha, 0, canvas)  
-
-    heat_map = cv2.applyColorMap(canvas, cv2.COLORMAP_JET)
+    
+    canvas_normed = canvas.copy()
+    cv2.normalize(canvas, canvas_normed, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+    heat_map = cv2.applyColorMap(canvas_normed, cv2.COLORMAP_JET)
 
     b_channel, g_channel, r_channel = cv2.split(heat_map)
     alpha_channel = np.ones(b_channel.shape, dtype=b_channel.dtype) * 255 # creating a dummy alpha channel image.
@@ -186,7 +189,7 @@ def plotMappedShapes(shape_to, out_path, patient, cond=None) :
     
     for ep in edge_points_to :
         e = ep - np.flip(canvas_offset,axis=0) #(y,x)
-        cv2.circle( canvas, (int(e[0]),int(e[1])), 2, (0,0,255,255), thickness=-1, lineType=cv2.LINE_AA )
+        cv2.circle( canvas, (int(e[0]),int(e[1])), 2, (0,0,0,255), thickness=-1, lineType=cv2.LINE_AA )
     
     # Draw medial axis of shape_to
     for mp in medial_axis_to :
@@ -196,7 +199,7 @@ def plotMappedShapes(shape_to, out_path, patient, cond=None) :
     # Draw transformed medial axis and edge of shape_from
     for mp in ma_rot :
         m = mp - np.flip(canvas_offset,axis=0) #(y,x)
-        cv2.circle( canvas, (int(m[0]),int(m[1])), 2, (0,0,255,255), thickness=-1, lineType=cv2.LINE_AA )
+        cv2.circle( canvas, (int(m[0]),int(m[1])), 2, (255,0,0,255), thickness=-1, lineType=cv2.LINE_AA )
         
     for ep in ep_rot :
         e = ep - np.flip(canvas_offset,axis=0) #(y,x)

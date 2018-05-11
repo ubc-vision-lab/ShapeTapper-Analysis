@@ -1,4 +1,5 @@
 import os
+import pickle
 import numpy as np
 import scipy.io as sio
 from ShapeObj import Shape
@@ -51,8 +52,28 @@ class ShapeIO :
         obs_from = self.__loadObs(shape_from, patient)
         if shape_from.name not in shape_to.fitted_transforms :
             shape_to.fitMedialAxisFrom(shape_from)
+            self.__saveTrans(shape_to)
         tf = shape_to.fitted_transforms[shape_from.name]
         return rotate_points(obs_from, tf, shape_from.dims)
+
+
+    def __loadTrans(self, shape) :
+        tf_path  = os.path.join(self.img_path, "shape_analysis")
+        tf_fname = "_".join((shape.name, "shape_pairs")) + ".tf"
+        tf_full_path = os.path.join(tf_path, tf_fname)
+        try :
+            tf = pickle.load( open( tf_full_path, "rb" ) )
+            print shape.name, tf
+        except (IOError) :
+            return
+        shape.fitted_transforms = tf
+
+
+    def __saveTrans(self, shape) :
+        tf_path  = os.path.join(self.img_path, "shape_analysis")
+        tf_fname = "_".join((shape.name, "shape_pairs")) + ".tf"
+        tf_full_path = os.path.join(tf_path, tf_fname)
+        pickle.dump( shape.fitted_transforms, open( tf_full_path , "wb" ) )
 
 
     def __checkListType(self, strlist) :
@@ -87,8 +108,9 @@ class ShapeIO :
 
             elif self.itertype == "Pairs" :
                 shape_from = self.__loadShape(s[0])
-                shape      = self.__loadShape(s[1])
-                self.shapes.append([shape_from,shape])
+                shape_to   = self.__loadShape(s[1])
+                self.__loadTrans(shape_to)
+                self.shapes.append([shape_from,shape_to])
 
 
     def __applyToShapes(self, func, patient=None, cond=None) :

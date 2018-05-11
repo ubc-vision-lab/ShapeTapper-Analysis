@@ -33,6 +33,7 @@ class Shape :
         self.centroid    = np.ascontiguousarray(s_mat['centroid'], dtype=np.float32)    # (x,y)
 
     def fitMedialAxisFrom(self, shapeFrom) :
+        print "Fitting medial axis from {0} to {1}...".format(shapeFrom.name, self.name)
         transform = fit_ro(shapeFrom.dims, shapeFrom.medial_axis, self.dims, self.medial_axis, usefast=1)
         self.fitted_transforms.update({shapeFrom.name : transform})
 
