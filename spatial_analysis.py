@@ -1,14 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 19 15:42:30 2018
 
-Performs analysis of distance and point clustering (Sadahiro & Takami, 2001) for each shape.
-
-Distance data will be saved in the directory "distance_analysis" with a subdirectory for each shape mask. 
-Each file contains data to create a probability distribution defined by the uniform uniform sets.
-
-The MATLAB script StatAnalysis.m will use these to calculate the significance of the observed data. 
+"""Performs analysis of distance and point clustering (Sadahiro & Takami, 2001) for each shape.
 
 @author: Jamie Dunkle
 """
@@ -23,6 +16,7 @@ from ShapeIO import ShapeIO
 from timeit import default_timer as timer
 
 ################# Function Definitions #########################################################################
+
 def getVarMean(data) :
     a = data.ndim - 1
     var = np.sum(np.power(data,2),axis=a)/(data.shape[a]-1)
@@ -31,6 +25,7 @@ def getVarMean(data) :
     return [var, rmse, amd]
 
 
+# Gets Average Mean Distance and StdDev for points to each reference object
 def get_dists(points, medial_axis, edge_points, centroid) :
     if points is None : return [[],[],[]]
 
@@ -72,21 +67,24 @@ def gu_cdf(rs,ft,cdf):
                 return
         cdf[r+1] = cdf[r] # copy current count to next region
 
-# cumulative distribution function for "reference object" defined by ro_pts
+
+# Cumulative Density Function for "Reference Object" defined by ro_pts
 def cdf(points_in, ro_pts, regions):
-    ft_dists = np.sort( dist.points2points(points_in,ro_pts) )
+    ft_dists = np.sort( dist.points2points(points_in,ro_pts) ) # sorted distances from RO
     cdf = np.empty(regions.shape[0], dtype=np.float32) # output vector
-    gu_cdf(regions, ft_dists, cdf)
+    gu_cdf(regions, ft_dists, cdf) # count number of points in each region
     return np.true_divide(cdf, points_in.shape[0]) # normalize [0, n_pts] to [0,1]
 
+
+# Gets CDFs for reference object (interior (uniform pixel) points = expected)
 def get_cdf(ro_pts, regions, interior_points, observed, uniform=None) :
-    # calculate d-values for main shape
+    # calculate CDF for main shape
     ds_exp = cdf(interior_points, ro_pts, regions)
 
-    # calculate d-values for observed data
+    # calculate CDF for observed data
     ds_obs = cdf(observed, ro_pts, regions)
 
-    # calculate d-values for 100k simulated data sets
+    # calculate CDF for 100k simulated data sets
     ds_unif = []
     if uniform is not None :
         ds_unif = np.empty((uniform.shape[0],regions.shape[0]), dtype=np.float32)
@@ -121,9 +119,11 @@ def spatialAnalysis(shape, out_path, patient, cond, n_cdf = 1000):
         if e.errno != errno.EEXIST:
             raise
 
+    # Fetch observed and generated uniform touch points
     observed = shape.observed
     uniform  = shape.uniform
 
+    # Fetch Reference Object points
     medial_axis = shape.medial_axis
     edge_points = shape.edge_points
     centroid    = shape.centroid
@@ -152,7 +152,7 @@ def spatialAnalysis(shape, out_path, patient, cond, n_cdf = 1000):
     shape_points = np.ascontiguousarray(shape_points, dtype=np.float32)
 
     # Calculate vector of regions for spatial analysis (from 0 to bounds of enclosing circle)
-    # Number of steps is specified in NUM_RS variable at top of script
+    # Number of steps defaults to 1000
     img_bounds = np.array( [ [0,0], [shape.dims[0], 0] , [shape.dims[0],shape.dims[1]], [0,shape.dims[1]] ])
     _, bd_circ_radius = cv2.minEnclosingCircle(img_bounds)
     max_r_bd = int(np.ceil(bd_circ_radius))
@@ -164,19 +164,20 @@ def spatialAnalysis(shape, out_path, patient, cond, n_cdf = 1000):
     regions_ct = np.linspace(0.0, max_r_ct, num=n_cdf, endpoint=True)
     regions_ct = np.ascontiguousarray(regions_ct, dtype=np.float32)
 
-    # Calculate spatial CDF data for each Reference Object (Medax, Edge, Centroid)
+    # Calculate spatial CDF data for each Reference Object (Medaxis, Edge, Centroid)
     start = timer()
     cdf_ma   = get_cdf(medial_axis, regions_bd, shape_points, observed, uniform)
     cdf_edge = get_cdf(edge_points, regions_bd, shape_points, observed, uniform)
     cdf_cent = get_cdf(centroid, regions_ct, shape_points, observed, uniform)
     print "{0} analysis : cdf data generated in {1}s".format(shape.name, timer() - start)
 
-    # Output data for statistical analysis
+    # Generate MAT file output names
     if shape.pair_mapping is not None :
         out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "spatial_analysis", cond)) + '.mat'
     else :
         out_fname = "_".join((shape.name, "Patient", patient, "spatial_analysis", cond)) + '.mat'
     
+    # Output data for statistical analysis in the StatAnalysis.m scripts
     sio.savemat( os.path.join(out_path, out_fname), {'n_points': observed.shape[0],
                                                      'observed_medaxis_data' :observed_varmean[0], 
                                                      'observed_edge_data'    :observed_varmean[1], 

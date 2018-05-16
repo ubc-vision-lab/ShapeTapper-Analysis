@@ -14,6 +14,7 @@ class ShapeIO :
             newShape = None
         return newShape
 
+
     def __loadMat(self, path, fname) :
         full_path = os.path.join(path, fname)
         try:
@@ -23,10 +24,11 @@ class ShapeIO :
             mat = None
         return mat
 
+
     def __loadObs(self, shape, patient) :
         if patient is None : return None
         obs_path  = os.path.join(self.in_path, patient, "observed_touchpoints")
-        obs_fname = "_".join((shape.name, "Patient", patient, "aggregated_observations")) + ".mat"
+        obs_fname = "_".join((shape.name, "Patient", patient, "observed_touchpoints")) + ".mat"
         obs_mat = self.__loadMat(obs_path, obs_fname)
         if obs_mat is not None :
             observed = np.ascontiguousarray(obs_mat['img_dataset'], dtype=np.float32)
@@ -50,6 +52,9 @@ class ShapeIO :
     def __loadShapeObsPair(self, shape_from, shape_to, patient=None) :
         if patient is None : return None
         obs_from = self.__loadObs(shape_from, patient)
+        if obs_from is None:
+            print "Error: {0} has no observed points for patient {1}".format(shape_from.name, patient)
+            return
         if shape_from.name not in shape_to.fitted_transforms :
             shape_to.fitMedialAxisFrom(shape_from)
             self.__saveTrans(shape_to)
@@ -63,9 +68,9 @@ class ShapeIO :
         tf_full_path = os.path.join(tf_path, tf_fname)
         try :
             tf = pickle.load( open( tf_full_path, "rb" ) )
-            print shape.name, tf
-        except (IOError) :
+        except (IOError, TypeError) :
             return
+        print "Loaded {0}, {1}".format(shape.name, tf)
         shape.fitted_transforms = tf
 
 
@@ -74,6 +79,9 @@ class ShapeIO :
         tf_fname = "_".join((shape.name, "shape_pairs")) + ".tf"
         tf_full_path = os.path.join(tf_path, tf_fname)
         pickle.dump( shape.fitted_transforms, open( tf_full_path , "wb" ) )
+        tf_fname_mat = "_".join((shape.name, "shape_pairs")) + ".mat"
+        tf_full_mat_path = os.path.join(tf_path, tf_fname_mat)
+        sio.savemat(tf_full_mat_path, shape.fitted_transforms)
 
 
     def __checkListType(self, strlist) :

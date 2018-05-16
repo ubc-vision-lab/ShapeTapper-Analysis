@@ -1,9 +1,6 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-
 import cv2
 import numpy as np
-import distances as dist
+import distance_lib as dist
 
 # Returns a set of 3x3 thinning elements which will thin skeleton to one-pixel
 # width while preserving connectivity
@@ -189,7 +186,7 @@ def imaTransform(white_points,edge_points,ft_lines) :
             interior_points.append([point.tolist(), idx])
     
     # Find all points which are adjacent (not diagonal) to points which have
-    # a different closest contour line, these are the IMA point
+    # a different closest contour line, these are the IMA points
     ima_points = []
     for ipoint in interior_points:
         closest_line = ft_lines[ipoint[1]]

@@ -1,20 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Mar 20 14:50:39 2018
 
-Generates sets of uniform data points corresponding to three shape masks:
-
-Bounding circle - All points within the circle defined by the diagonal of the
-                  shape's bounding rectangle (image canvas)
-In shape        - All points within the boundary of the shape itself
-Touchpoint hull - All points within a space defined by the perimeter of the touchpoints
-
-These sets are specific to each patient's data set, so this script must be run before
-running spatial_analysis.py
-
-Generated sets will be saved in the directory "uniform_points with a subdirectory
-for each shape mask
+"""Generates sets of uniform data points corresponding toshape masks:
 
 @author: Jamie Dunkle
 """
@@ -44,6 +31,14 @@ def plot_generated(generated, edge_points, img) :
     cv2.destroyAllWindows()
     
 
+# Calculates the scaling factor for a shape
+#
+# First we find the percentage of touch points which are out of bounds
+# then take the out-of-bound point that is the same percentile distant from the edge out of all the out-of-bound points
+# And find the amount the shape needs to be scaled from the centroid to include that point
+#
+# Essentially, this is trying to expand the shape to produce some random uniform points that are out-of-bounds
+# but are roughly similar in distance and number to the original touch data
 def get_scaling_factor(observed, edge_points, centroid) :
     # Retrieve set of all touch points out of shape bounds
     observed_oob = []
@@ -79,14 +74,15 @@ def get_scaling_factor(observed, edge_points, centroid) :
         edge_pt_ref_dist = dist.points2points(np.array([edge_points[edge_pt_ref]]),centroid)
         return (edge_pt_ref_dist[0] + dilate_dist) / edge_pt_ref_dist[0]
 
-# Expands edge points
+
+# Expands edge points by scaling factor
 def dilate_edges(edge_points, center_point, scale) :
-   edges_centered = edge_points - center_point
-   edges_scaled = edges_centered * scale
+   edges_centered = edge_points - center_point # center points
+   edges_scaled = edges_centered * scale # Scale from center
    return edges_scaled + center_point
 
 
-# generates uniformly distributed data points inside a region defined by edge_points
+# Generates uniformly distributed data points inside a region defined by edge_points
 def gen_uniform_points_bounds(n_sets, n_pts, edge_points, mins, maxes) :
     uniform_points = np.zeros((n_sets,n_pts,2)) # output array
     for i in range(n_sets) :
@@ -94,14 +90,14 @@ def gen_uniform_points_bounds(n_sets, n_pts, edge_points, mins, maxes) :
     return uniform_points
 
 
-# generates uniformly distributed data points inside a circle
+# Generates uniformly distributed data points inside a circle
 def gen_uniform_points_circle(n_sets, n_pts, center, radius):
     uniform_points = np.empty((n_sets,n_pts,2)) # output array
     for i in range(n_sets) :
         rp.gen_uniform_circle(center[1], center[0], radius, n_pts, uniform_points[i])
     return uniform_points
 
-# generates uniformly distributed data points inside a circle
+# Generates normally distributed data points from the centroid (within same bounding circle as above)
 def gen_uniform_points_cent_normal(n_sets, n_pts, center, bd_center, bd_radius, std) :
     uniform_points = np.empty((n_sets,n_pts,2)) # output array
     for i in range(n_sets) :
@@ -133,11 +129,12 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
 
     generated_data_sets = []
 
-    observed = shape.observed
+    # Fetch Reference Objects from shape
+    observed    = shape.observed
     edge_points = shape.edge_points
-    centroid = shape.centroid
+    centroid    = shape.centroid
 
-    # Generate uniform data in circle around bounding rectangle (same as touchpoint roi)
+    # Generate uniform data in circle around bounding rectangle (same as touchpoint ROI)
     if cond == "bounding_circle" :
         start = timer()
         n_pts = observed.shape[0]
@@ -145,7 +142,7 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
         bd_circ_cent, bd_circ_rad = cv2.minEnclosingCircle(img_bounds)
         generated_data_sets = gen_uniform_points_circle(n_sets, n_pts, bd_circ_cent, bd_circ_rad)
 
-     # Generate data normal distribution from the centroid (within the bounding circle as above)
+    # Generate data normal distribution from the centroid (within the bounding circle as above)
     if cond == "normal_distribution" :
         start = timer()
         n_pts = observed.shape[0]
@@ -156,7 +153,7 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
         cent = centroid[0].astype(np.float64)
         generated_data_sets = gen_uniform_points_cent_normal(n_sets, n_pts, cent, bd_circ_cent, bd_circ_rad, std).astype(np.float32)
  
-    # Generate uniform data within shape   
+    # Generate uniform data within shape only
     if cond == "in_shape" :
         start = timer()
         # Keep only touch points inside of shape
@@ -195,11 +192,13 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
     print "Generated {0} in {1}s {2}".format(shape.name, timer()-start, generated_data_sets.shape)
     # plot_generated(generated_data_sets, edge_points, shape.img.copy())
 
+    # Generate MAT file output names
     if shape.pair_mapping is not None :
         out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
     else :
         out_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
     
+    # Save generated uniform points as a MAT file
     sio.savemat( os.path.join(out_path, out_fname), {'unif_datasets':generated_data_sets} )
 
 
