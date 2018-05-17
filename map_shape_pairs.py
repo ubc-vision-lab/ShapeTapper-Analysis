@@ -117,7 +117,7 @@ def fit_ro(img_from_dims, img_from_ro, img_to_dims, img_to_ro, usefast=1) :
                 # Find distance from rotated RO to target RO (img_to_ro)
                 ro2ro_dist   = np.sum(dist.points2points(ro_from_rot, img_to_ro))
                 # Reshape flattened vector to original matrix of rotated ROs, store sum min distances
-                ro2ro[i,j,:] = ro2ro_dist.reshape(ro_rots.shape[0:2]), axis=1)
+                ro2ro[i,j,:] = ro2ro_dist.reshape(ro_rots.shape[0:2], axis=1)
 
         idx = np.unravel_index(np.argmin(ro2ro, axis=None), ro2ro.shape) # get index of min distance
         offset_min = offsets_c[idx[0:2]] # Retrieve original offset (from interquartile offset index)

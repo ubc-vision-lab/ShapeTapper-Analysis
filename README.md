@@ -3,6 +3,8 @@ Code to analyze subject results for ShapeTapper
 
 How to use this analysis package:
 
+ - Make sure that you have Python 2.7 installed on your machine, with the following packages in your environment: OpenCV2 (cv2), NumPy, SciPy, Numba
+
  - Ensure that the shape images are all in a subdirectory of this folder named `Shape/`
 
  - Make a patient subdirectory in this folder, for example `DF/`. 
