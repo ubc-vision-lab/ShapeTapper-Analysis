@@ -21,6 +21,18 @@ function [obs_out, gen_out] = parse_cdf_struct(cdf_struct)
     gen_dplus  = max(gen_cdf_diff, [], 2);
     gen_dminus = min(gen_cdf_diff, [], 2);
     
+    gen_dmaxdev = zeros(1,length(gen_dplus));
+    for i=1:length(gen_dplus)
+        if -1*gen_dminus(i) > gen_dplus(i)
+            gen_dmaxdev(i) = gen_dminus(i);
+        else
+            gen_dmaxdev(i) = gen_dplus(i);
+        end
+    end
+    gen_out.dmaxdev = gen_dmaxdev;
+    gen_out.dmaxdev_avg = mean(gen_dmaxdev);
+    gen_out.dmaxdev_std = std(gen_dmaxdev);
+    
     gen_out.dplus  = gen_dplus;
     gen_out.dplus_avg = mean(gen_dplus);
     gen_out.dplus_std = std(gen_dplus);

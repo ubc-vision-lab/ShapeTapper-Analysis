@@ -22,14 +22,29 @@ def make_gauss_prob(points, dims, sigma) :
     return pt_filt / np.sum(pt_filt)
 
 
-def bayesAnalysis(shape, out_path, patient, cond=None, max_sigma = 100):    
+def bayesianAnalysis(shape, out_path, patient, cond=None, max_sigma = 200):    
+    
+    if patient is None :
+        print "Error in bayesianAnalysis() : no patient name specified."
+        return
+
+    if shape.observed is None :
+        print "Error in bayesianAnalysis() : no observed touch points found for {0}. Please check data files.".format(shape.name)
+        return
+
+    out_path = os.path.join(out_path, patient, "bayesian_analysis")
+    try:
+        os.makedirs(out_path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
     img = shape.img
-    observed = shape.observed
+    observed = shape.observed.astype(np.int32)
 
-    medial_axis = shape.medial_axis
-    edge_points = shape.edge_points
-    centroid    = shape.centroid
+    medial_axis = shape.medial_axis.astype(np.int32)
+    edge_points = shape.edge_points.astype(np.int32)
+    centroid    = shape.centroid.astype(np.int32)
 
     bounds = np.array([ [0,0], [shape.dims[1],0], [shape.dims[1],shape.dims[0]], [0,shape.dims[0]] ])
     
@@ -54,14 +69,23 @@ def bayesAnalysis(shape, out_path, patient, cond=None, max_sigma = 100):
     p_mapt = []
     p_edge = []
     p_cent = []
+    p_mapt_solo = []
     for i in range(1,max_sigma+1):
         if i%10 == 0 : sys.stdout.write(".")
         mapt_filt = make_gauss_prob(medial_axis, img.shape[1::-1], sigma=i)
         edge_filt = make_gauss_prob(edge_points, img.shape[1::-1], sigma=i)
-        cent_filt = make_gauss_prob(centroid, img.shape[1::-1], sigma=i)        
+        cent_filt = make_gauss_prob(centroid, img.shape[1::-1], sigma=i)
         p_mapt.append(np.sum(mapt_filt[zip(*observed)]))
         p_edge.append(np.sum(edge_filt[zip(*observed)]))
         p_cent.append(np.sum(cent_filt[zip(*observed)]))
+        mapt_solo_filt = mapt_filt - cent_filt
+        mapt_solo_filt[mapt_solo_filt < 0] = 0
+        mapt_sum = np.sum(mapt_solo_filt) 
+        if mapt_sum != 0 :
+            mapt_solo_filt /= mapt_sum      
+        else :
+            mapt_solo_filt  = np.zeros_like(mapt_solo_filt)
+        p_mapt_solo.append(np.sum(mapt_solo_filt[zip(*observed)]))
     
     # Find sigma value for which prob of all hypothesis is greatest
     max_idx = np.argmax(np.sum(np.array([p_cent, p_edge, p_mapt]),0))
@@ -73,12 +97,13 @@ def bayesAnalysis(shape, out_path, patient, cond=None, max_sigma = 100):
     print "MedAx :", p_mapt[max_idx], '\n'
     
     # Output data for all sigmas to MAT file
-    out_fname = os.path.join(out_path, shape.name+'_bayes.mat')
-    sio.savemat( out_fname ,
-                {'null_p': p_null,
-                 'centroid_p':[p_cent, range(1,max_sigma+1)], 
-                 'edge_p':[p_edge, range(1,max_sigma+1)], 
-                 'medaxis_p':[p_mapt, range(1,max_sigma+1)]})
+    out_fname = "_".join((shape.name, "Patient", patient, "bayes")) + '.mat'
+    sio.savemat( os.path.join(out_path, out_fname) ,
+                {'null_p'    : p_null,
+                 'centroid_p': p_cent, 
+                 'edge_p'    : p_edge, 
+                 'medaxis_p' : p_mapt,
+                 'medaxis_solo_p' : p_mapt_solo } )
     
 
 if __name__ == '__main__':

@@ -3,7 +3,10 @@ clear
 patients = {'DF','MC',...
             'S01','S02','S03','S04','S06','S07',...
             'S08','S09','S11','S13','S14','S17',...
-            'S20','S21','S22','S23','S24'};
+            'S20','S21','S22','S23','S24',...
+            'S25','S26','S27',...
+            'S28','S29','S30',...
+            'S31','S32','S33'};
 % patients = {'DF','MC'};
 num_patients = length(patients);
 
@@ -31,6 +34,9 @@ all_cent = struct();
 [all_ma.dplus_std, all_ma.dplus_avg, all_ma.dminus_std, all_ma.dminus_avg] = deal(zeros(num_patients,num_shapes));
 [all_edge.dplus_std, all_edge.dplus_avg, all_edge.dminus_std, all_edge.dminus_avg] = deal(zeros(num_patients,num_shapes));
 [all_cent.dplus_std, all_cent.dplus_avg, all_cent.dminus_std, all_cent.dminus_avg] = deal(zeros(num_patients,num_shapes));
+
+[all_ma.dmaxdev_avg, all_edge.dmaxdev_avg, all_cent.dmaxdev_avg] = deal(zeros(num_patients,num_shapes));
+[all_ma.dmaxdev_std, all_edge.dmaxdev_std, all_cent.dmaxdev_std] = deal(zeros(num_patients,num_shapes));
 
 [all_ma.obs_dplus, all_ma.obs_dminus] = deal(zeros(num_patients,num_shapes));
 [all_edge.obs_dplus, all_edge.obs_dminus] = deal(zeros(num_patients,num_shapes));
@@ -65,6 +71,9 @@ for c=1:length(analysis_conds)
         [ma_dplus_std, ma_dplus_avg, ma_dminus_std, ma_dminus_avg] = deal(zeros(num_shapes,1));
         [edge_dplus_std, edge_dplus_avg, edge_dminus_std, edge_dminus_avg] = deal(zeros(num_shapes,1));
         [cent_dplus_std, cent_dplus_avg, cent_dminus_std, cent_dminus_avg] = deal(zeros(num_shapes,1));
+        
+        [ma_dmaxdev_avg, edge_dmaxdev_avg, cent_dmaxdev_avg] = deal(zeros(num_shapes,1));
+        [ma_dmaxdev_std, edge_dmaxdev_std, cent_dmaxdev_std] = deal(zeros(num_shapes,1));
         
         [ma_dplus_obs, edge_dplus_obs, cent_dplus_obs] = deal(zeros(num_shapes,1));
         [ma_dminus_obs, edge_dminus_obs, cent_dminus_obs] = deal(zeros(num_shapes,1));
@@ -110,6 +119,31 @@ for c=1:length(analysis_conds)
             cent_dplus_obs(i)  = obs_cent.dplus;
             cent_dminus_obs(i) = obs_cent.dminus;
             
+            ma_dmaxdev_avg(i)   = gen_ma.dmaxdev_avg;
+            edge_dmaxdev_avg(i) = gen_edge.dmaxdev_avg;
+            cent_dmaxdev_avg(i) = gen_cent.dmaxdev_avg;
+            ma_dmaxdev_std(i)   = gen_ma.dmaxdev_std;
+            edge_dmaxdev_std(i) = gen_edge.dmaxdev_std;
+            cent_dmaxdev_std(i) = gen_cent.dmaxdev_std;
+            
+%             medaxis_dmavdevs = gen_ma.dmaxdev;
+%             if -1*obs_ma.dminus > obs_ma.dplus
+%                 medaxis_obsmaxdev = obs_ma.dminus;
+%             else
+%                 medaxis_obsmaxdev = obs_ma.dplus;
+%             end
+%             medaxis_maxdev_pval = KernelDistApproximator_plot(medaxis_dmavdevs', medaxis_obsmaxdev); % amd    
+% 
+%             medaxis_dmavdevs = [gen_ma.dplus; gen_ma.dminus];
+%             if -1*obs_ma.dminus > obs_ma.dplus
+%                 medaxis_obsmaxdev = obs_ma.dminus;
+%             else
+%                 medaxis_obsmaxdev = obs_ma.dplus;
+%             end
+%             medaxis_maxdev_pval = KernelDistApproximator_plot(medaxis_dmavdevs, medaxis_obsmaxdev); % amd    
+            
+%             medaxis_dplus(i)   = PoissonDistApproximator(double(gen_ma.dplus), double(obs_ma.dplus));
+
             medaxis_dplus(i)   = KernelDistApproximator(gen_ma.dplus, obs_ma.dplus);
             medaxis_dminus(i)  = KernelDistApproximator(gen_ma.dminus, obs_ma.dminus);
             edge_dplus(i)      = KernelDistApproximator(gen_edge.dplus, obs_edge.dplus);
@@ -187,6 +221,14 @@ for c=1:length(analysis_conds)
         all_cent.obs_dplus(p,:)  = cent_dplus_obs;
         all_cent.obs_dminus(p,:) = cent_dminus_obs;
         
+        all_ma.dmaxdev_avg(p,:)   = ma_dmaxdev_avg;
+        all_edge.dmaxdev_avg(p,:) = edge_dmaxdev_avg;
+        all_cent.dmaxdev_avg(p,:) = cent_dmaxdev_avg;
+        
+        all_ma.dmaxdev_std(p,:)   = ma_dmaxdev_std;
+        all_edge.dmaxdev_std(p,:) = edge_dmaxdev_std;
+        all_cent.dmaxdev_std(p,:) = cent_dmaxdev_std;
+        
     end % patient loop
     
     all_column_names = {'Patient',...
@@ -198,7 +240,9 @@ for c=1:length(analysis_conds)
                         'Centroid_Dplus_StdDev', 'Centroid_Dplus_Mean', 'Centroid_Dplus_Observed',...
                         'Centroid_Dminus_StdDev', 'Centroid_Dminus_Mean', 'Centroid_Dminus_Observed',...
                         'Edge_Dplus_StdDev', 'Edge_Dplus_Mean', 'Edge_Dplus_Observed',...
-                        'Edge_Dminus_StdDev', 'Edge_Dminus_Mean', 'Edge_Dminus_Observed' };
+                        'Edge_Dminus_StdDev', 'Edge_Dminus_Mean', 'Edge_Dminus_Observed',...
+                        'MedialAxis_DMaxDeviation_Mean', 'Centroid_DMaxDeviation_Mean', 'Edge_DMaxDeviation_Mean',...
+                        'MedialAxis_DMaxDeviation_StdDev', 'Centroid_DMaxDeviation_StdDev', 'Edge_DMaxDeviation_StdDev'};
     
     results_all = table(patients',...
                         all_ma.dist_std, all_ma.dist_avg, all_ma.obs_dist_avg,...
@@ -209,7 +253,9 @@ for c=1:length(analysis_conds)
                         all_cent.dplus_std, all_cent.dplus_avg, all_cent.obs_dplus,...
                         all_cent.dminus_std, all_cent.dminus_avg, all_cent.obs_dminus,...
                         all_edge.dplus_std, all_edge.dplus_avg, all_edge.obs_dplus,...
-                        all_edge.dminus_std, all_edge.dminus_avg, all_edge.obs_dminus);
+                        all_edge.dminus_std, all_edge.dminus_avg, all_edge.obs_dminus,...
+                        all_ma.dmaxdev_avg, all_cent.dmaxdev_avg, all_edge.dmaxdev_avg,...
+                        all_ma.dmaxdev_std, all_cent.dmaxdev_std, all_edge.dmaxdev_std);
                     
     results_all.Properties.VariableNames = all_column_names;
                     
@@ -224,7 +270,9 @@ for c=1:length(analysis_conds)
                         mean(all_cent.dplus_std,2), mean(all_cent.dplus_avg,2), mean(all_cent.obs_dplus,2),...
                         mean(all_cent.dminus_std,2), mean(all_cent.dminus_avg,2), mean(all_cent.obs_dminus,2),...
                         mean(all_edge.dplus_std,2), mean(all_edge.dplus_avg,2), mean(all_edge.obs_dplus,2),...
-                        mean(all_edge.dminus_std,2), mean(all_edge.dminus_avg,2), mean(all_edge.obs_dminus,2));
+                        mean(all_edge.dminus_std,2), mean(all_edge.dminus_avg,2), mean(all_edge.obs_dminus,2),...
+                        mean(all_ma.dmaxdev_avg,2), mean(all_cent.dmaxdev_avg,2), mean(all_edge.dmaxdev_avg,2),...    
+                        mean(all_ma.dmaxdev_std,2), mean(all_cent.dmaxdev_std,2), mean(all_edge.dmaxdev_std,2));
     
     results_allmeans.Properties.VariableNames = all_column_names;
                     

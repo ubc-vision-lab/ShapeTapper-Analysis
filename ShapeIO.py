@@ -123,10 +123,14 @@ class ShapeIO :
         
         # Generate observed MAT filename
         obs_path  = os.path.join(self.in_path, patient, "observed_touchpoints")
-        obs_fname = "_".join((shape.name, "Patient", patient, "observed_touchpoints")) + ".mat"
+        obs_fname = "_".join((shape.name, "Patient", patient, "aggregated_observations")) + ".mat"
         
         # If loadMat is successfull, then add observed data to shape object
         obs_mat = self.__loadMat(obs_path, obs_fname)
+        if obs_mat is None :
+            obs_fname = "_".join((shape.name, "Patient", patient, "observed_touchpoints")) + ".mat"
+            obs_mat = self.__loadMat(obs_path, obs_fname)
+            
         if obs_mat is not None :
             observed = np.ascontiguousarray(obs_mat['img_dataset'], dtype=np.float32)
             if observed.shape[0] == 0 : return None

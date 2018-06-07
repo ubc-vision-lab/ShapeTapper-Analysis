@@ -1,15 +1,19 @@
 clear
 
-patients = {'S01','S02','S03','S04','S06','S07',...
-            'S08','S09','S11','S13','S14','S17',...
-            'S20','S21','S22','S23','S24'};
-
+% patients = {'S01','S02','S03','S04','S06','S07',...
+%             'S08','S09','S11','S13','S14','S17',...
+%             'S20','S21','S22','S23','S24'};
+patients = {'S25','S26','S27',...
+            'S28','S29','S30',...
+            'S31','S32','S33'};
+patient_nums = [25 26 27 28 29 30 31 32 33];
+        
 in_path  = 'D:\ShapeTapper-Analysis\';
 out_path = 'D:\ShapeTapper-Analysis\';
 
 for p=1:length(patients)
     
-    fileID = fopen([in_path patients{p} '\Overall_Results.txt']);
+    fileID = fopen([in_path patients{p} '\' num2str(patient_nums(p)) '_Overall_Results.txt']);
     C1 = textscan(fileID,'%s %f %f %d %s','headerLines',1);
     fclose(fileID);
 
