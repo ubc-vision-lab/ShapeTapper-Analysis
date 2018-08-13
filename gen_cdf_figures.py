@@ -65,7 +65,7 @@ def drawCDF(img, img_bin, ro_pts, edge_pts, uniform, observed, regions, r_idx) :
     return img
 
 
-def plotCDFFig(shape, out_path, patient, cond=None, NUM_CDF_STEPS = 1000):    
+def plotCDFFig(shape, out_path, patient, cond=None, task=None, NUM_CDF_STEPS=1000):    
     ################### Load data ###################
 
     print "Plotting {0}".format(shape.name)
@@ -78,7 +78,8 @@ def plotCDFFig(shape, out_path, patient, cond=None, NUM_CDF_STEPS = 1000):
         print "Error in plotHeatMap() : no observed touch points found for {0}. Please check data files.".format(shape.name)
         return
 
-    out_path = os.path.join(out_path, patient, "figures", "cdf_figs")
+    # out_path = os.path.join(out_path, patient, "figures", "cdf_figs")
+    out_path = os.path.join(out_path, patient, "figures", "cdf_figs", patient)
     try:
         os.makedirs(out_path)
     except OSError as e:

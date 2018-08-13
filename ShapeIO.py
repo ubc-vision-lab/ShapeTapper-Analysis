@@ -65,7 +65,7 @@ class ShapeIO :
 
 
     # Applies function to list of shapes, looping through patient and condition lists if given
-    def run(self, func, patientList=None, condList=None):
+    def run(self, func, patientList=None, condList=None, taskList=None):
         if self.shape_list is None : return
 
         if patientList is not None:
@@ -74,7 +74,12 @@ class ShapeIO :
                 if condList is not None :
                     for c in condList :
                         print "Condition :", c
-                        self.__applyToShapes(func, p, c)
+                        if taskList is not None :
+                            for t in taskList :
+                                print "Task :", t
+                                self.__applyToShapes(func, p, c, t)
+                        else :
+                            self.__applyToShapes(func, p, c)
                 else :
                     self.__applyToShapes(func, p)
         else :
@@ -82,7 +87,7 @@ class ShapeIO :
 
 
     # Applies function to list of shapes, loading observed and generated uniform points as needed
-    def __applyToShapes(self, func, patient=None, cond=None) :
+    def __applyToShapes(self, func, patient=None, cond=None, task=None) :
         if self.shape_list is None : return
 
         for shape in self.shapes :
@@ -91,7 +96,7 @@ class ShapeIO :
                 if shape is None : continue
                 shape.pair_mapping = None
                 # Load observed touchpoint data
-                shape.observed = self.__loadObs(shape, patient)
+                shape.observed = self.__loadObs(shape, patient, task)
                 # Load uniform generated data (returns None if empty)
                 shape.uniform  = self.__loadUnif(shape, patient, cond)
 
@@ -102,7 +107,7 @@ class ShapeIO :
                 # Store name of shape_from to keep track of shape pair
                 shape.pair_mapping = shape_from.name
                 # Load transformed observed touchpoint data from shape_from to shape
-                shape.observed = self.__loadShapeObsPair(shape_from, shape, patient)
+                shape.observed = self.__loadShapeObsPair(shape_from, shape, patient, task)
                 # Load uniform generated data (returns None if empty)
                 shape.uniform  = self.__loadUnif(shape, patient, cond)
 
@@ -110,7 +115,10 @@ class ShapeIO :
             # patient and cond default to None in functions which do not use them
             if patient is not None:
                 if cond is not None :
-                    func(shape, self.out_path, patient, cond)
+                    if task is not None :
+                        func(shape, self.out_path, patient, cond, task)
+                    else :
+                        func(shape, self.out_path, patient, cond)
                 else :
                     func(shape, self.out_path, patient)
             else :
@@ -118,17 +126,24 @@ class ShapeIO :
 
 
     # Load observed touch point MAT file to shape
-    def __loadObs(self, shape, patient) :
+    def __loadObs(self, shape, patient, task=None) :
         if patient is None : return None
         
         # Generate observed MAT filename
         obs_path  = os.path.join(self.in_path, patient, "observed_touchpoints")
-        obs_fname = "_".join((shape.name, "Patient", patient, "aggregated_observations")) + ".mat"
-        
+
+        if task is None :
+            obs_fname = "_".join((shape.name, "Patient", patient, "aggregated_observations")) + ".mat"
+        else :
+            obs_fname = "_".join((shape.name, "Patient", patient, "aggregated_observations", task)) + ".mat"
+
         # If loadMat is successfull, then add observed data to shape object
         obs_mat = self.__loadMat(obs_path, obs_fname)
         if obs_mat is None :
-            obs_fname = "_".join((shape.name, "Patient", patient, "observed_touchpoints")) + ".mat"
+            if task is None :
+                obs_fname = "_".join((shape.name, "Patient", patient, "observed_touchpoints")) + ".mat"
+            else :
+                obs_fname = "_".join((shape.name, "Patient", patient, "observed_touchpoints", task)) + ".mat"
             obs_mat = self.__loadMat(obs_path, obs_fname)
             
         if obs_mat is not None :
@@ -167,11 +182,11 @@ class ShapeIO :
 
 
     # Loads observed points from "shape_from", fits them to "shape_to" and returns the transformed points
-    def __loadShapeObsPair(self, shape_from, shape_to, patient=None) :
+    def __loadShapeObsPair(self, shape_from, shape_to, patient=None, task=None) :
         if patient is None : return None
         
         # Load observed touch points from shape_from
-        obs_from = self.__loadObs(shape_from, patient)
+        obs_from = self.__loadObs(shape_from, patient, task)
         if obs_from is None:
             print "Error: {0} has no observed points for patient {1}".format(shape_from.name, patient)
             return

@@ -1,7 +1,7 @@
 clear
 
-% Load a.mat file with patient results
-load('a.mat')
+% Load mat file with patient results
+load('patient_and_control_scores_in_shape.mat')
 
 % Seperate the four columns into task categories 
 % (a = 3 shape discrimination, b = 2 shape discrimination)

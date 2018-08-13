@@ -27,7 +27,7 @@ def getVarMean(data) :
 
 # Gets Average Mean Distance and StdDev for points to each reference object
 def get_dists(points, medial_axis, edge_points, centroid) :
-    if points is None : return [[],[],[]]
+    if points is None or len(points.shape) <= 1 : return [[],[],[]]
 
     if len(points.shape) < 3 :
         ma_dists   = dist.points2points(points,medial_axis)
@@ -81,21 +81,35 @@ def get_cdf(ro_pts, regions, interior_points, observed, uniform=None) :
     # calculate CDF for main shape
     ds_exp = cdf(interior_points, ro_pts, regions)
 
-    # calculate CDF for observed data
-    ds_obs = cdf(observed, ro_pts, regions)
-
-    # calculate CDF for 100k simulated data sets
-    ds_unif = []
+    # calculate CDF for observed data, get difference from expected
+    if len(observed.shape) > 1 :
+        ds_obs = cdf(observed, ro_pts, regions)
+        obs_diff = ds_obs - ds_exp
+    else :
+        obs_diff = [0]
+    
+    obs_dplus = np.max(obs_diff)
+    obs_dminus = np.min(obs_diff)
+    obs_dplus_r = np.argmax(obs_diff)
+    obs_dminus_r = np.argmin(obs_diff)
+    
+    # calculate CDF for 100k simulated data sets, get difference from expected
     if uniform is not None :
         ds_unif = np.empty((uniform.shape[0],regions.shape[0]), dtype=np.float32)
         for i, point_set in enumerate(uniform) :
             ds_unif[i] = cdf(point_set, ro_pts, regions)
+        gen_diff = ds_unif - ds_exp
+        gen_dplus = np.max(gen_diff, axis=1)
+        gen_dminus = np.min(gen_diff, axis=1)
+    else :
+        gen_dplus = [0]
+        gen_dminus = [0]
+    
+    return [obs_dplus, obs_dminus, obs_dplus_r, obs_dminus_r, gen_dplus, gen_dminus]
 
-    return [ds_exp, ds_obs, ds_unif]
 
 
-
-def spatialAnalysis(shape, out_path, patient, cond, n_cdf = 1000):    
+def spatialAnalysis(shape, out_path, patient, cond, task=None, n_cdf=1000):    
 
     if patient is None :
         print "Error in spatialAnalysis() : no patient name specified."
@@ -112,7 +126,11 @@ def spatialAnalysis(shape, out_path, patient, cond, n_cdf = 1000):
     if shape.uniform is None :
         print "Warning in spatialAnalysis() : no uniform points found for {0}. Please check data files.".format(shape.name)
 
-    out_path = os.path.join(out_path, patient, "spatial_analysis", cond)
+    if task is None :
+        out_path = os.path.join(out_path, patient, "spatial_analysis", cond)
+    else :
+        out_path = os.path.join(out_path, patient, "spatial_analysis", cond, task)
+
     try:
         os.makedirs(out_path)
     except OSError as e:
@@ -173,21 +191,35 @@ def spatialAnalysis(shape, out_path, patient, cond, n_cdf = 1000):
 
     # Generate MAT file output names
     if shape.pair_mapping is not None :
-        out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "spatial_analysis", cond)) + '.mat'
+        if task is None :
+            out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "spatial_analysis", cond)) + '.mat'
+        else :
+            out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "spatial_analysis", cond, task)) + '.mat'
     else :
-        out_fname = "_".join((shape.name, "Patient", patient, "spatial_analysis", cond)) + '.mat'
-    
+        if task is None :
+            out_fname = "_".join((shape.name, "Patient", patient, "spatial_analysis", cond)) + '.mat'
+        else :
+            out_fname = "_".join((shape.name, "Patient", patient, "spatial_analysis", cond, task)) + '.mat'
+
     # Output data for statistical analysis in the StatAnalysis.m scripts
-    sio.savemat( os.path.join(out_path, out_fname), {'n_points': observed.shape[0],
-                                                     'observed_medaxis_data' :observed_varmean[0], 
-                                                     'observed_edge_data'    :observed_varmean[1], 
-                                                     'observed_centroid_data':observed_varmean[2],
-                                                     'uniform_medaxis_data' :uniform_varmean[0], 
-                                                     'uniform_edge_data'    :uniform_varmean[1],
-                                                     'uniform_centroid_data':uniform_varmean[2],
-                                                     'medaxis_cdf' :[cdf_ma, regions_bd],
-                                                     'edge_cdf'    :[cdf_edge, regions_bd],
-                                                     'centroid_cdf':[cdf_cent, regions_ct]})
+    sio.savemat( os.path.join(out_path, out_fname), {'n_points'              : observed.shape[0],
+                                                     'observed_medaxis_data' : observed_varmean[0], 
+                                                     'observed_edge_data'    : observed_varmean[1], 
+                                                     'observed_centroid_data': observed_varmean[2],
+                                                     'uniform_medaxis_data'  : uniform_varmean[0], 
+                                                     'uniform_edge_data'     : uniform_varmean[1],
+                                                     'uniform_centroid_data' : uniform_varmean[2],
+                                                     'medaxis_cdf_obs' : [cdf_ma[0], cdf_ma[1]],
+                                                     'medaxis_cdf_obs_r' : [cdf_ma[2], cdf_ma[3]],
+                                                     'medaxis_cdf_gen' : [cdf_ma[4], cdf_ma[5]],
+                                                     'edge_cdf_obs' : [cdf_edge[0], cdf_edge[1]],
+                                                     'edge_cdf_obs_r' : [cdf_edge[2], cdf_edge[3]],
+                                                     'edge_cdf_gen' : [cdf_edge[4], cdf_edge[5]],
+                                                     'centroid_cdf_obs' : [cdf_cent[0], cdf_cent[1]],
+                                                     'centroid_cdf_obs_r' : [cdf_cent[2], cdf_cent[3]],
+                                                     'centroid_cdf_gen' : [cdf_cent[4], cdf_cent[5]],
+                                                     'regions_bd' : regions_bd,
+                                                     'regions_ct' : regions_ct })
 
 
 

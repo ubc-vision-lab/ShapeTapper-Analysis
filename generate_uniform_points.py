@@ -106,7 +106,7 @@ def gen_uniform_points_cent_normal(n_sets, n_pts, center, bd_center, bd_radius, 
 
 
 ################### Random point generation ####################################################################
-def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
+def generateUniformData(shape, out_path, patient, cond, task=None, n_sets=100000) :
 
     if patient is None :
         print "Error in generateUniformData() : no patient name specified."
@@ -120,7 +120,11 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
         print "Error in generateUniformData() : no observed touch points found for {0}. Please check data files.".format(shape.name)
         return
 
-    out_path = os.path.join(out_path, patient, "uniform_points", cond)
+    if task is None :
+        out_path = os.path.join(out_path, patient, "uniform_points", cond)
+    else :
+        out_path = os.path.join(out_path, patient, "uniform_points", cond, task)
+
     try:
         os.makedirs(out_path)
     except OSError as e:
@@ -192,12 +196,18 @@ def generateUniformData(shape, out_path, patient, cond, n_sets = 100000) :
     print "Generated {0} in {1}s {2}".format(shape.name, timer()-start, generated_data_sets.shape)
     # plot_generated(generated_data_sets, edge_points, shape.img.copy())
 
-    # Generate MAT file output names
+     # Generate MAT file output names
     if shape.pair_mapping is not None :
-        out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
+        if task is None :
+            out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
+        else :
+            out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, "uniform_points", cond, task)) + '.mat'
     else :
-        out_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
-    
+        if task is None :
+            out_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond)) + '.mat'
+        else :
+            out_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond, task)) + '.mat'
+
     # Save generated uniform points as a MAT file
     sio.savemat( os.path.join(out_path, out_fname), {'unif_datasets':generated_data_sets} )
 

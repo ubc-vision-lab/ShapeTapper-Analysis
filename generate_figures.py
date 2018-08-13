@@ -17,7 +17,7 @@ from map_shape_pairs import rotate_points
 ################# Function Definitions #########################################################################
 
 # Plot color-graded "heat map" representing the relative density of touch points in a given shape
-def plotHeatMap(shape, out_path, patient, cond=None) :
+def plotHeatMap(shape, out_path, patient, cond=None, task=None) :
 
     print "Plotting {0}".format(shape.name)
 
@@ -29,7 +29,8 @@ def plotHeatMap(shape, out_path, patient, cond=None) :
         print "Error in plotHeatMap() : no observed touch points found for {0}. Please check data files.".format(shape.name)
         return
 
-    out_path = os.path.join(out_path, patient, "figures", "heat_maps")
+    # out_path = os.path.join(out_path, patient, "figures", "heat_maps")
+    out_path = os.path.join(out_path, "figures", "heat_maps", patient)
     try:
         os.makedirs(out_path)
     except OSError as e:
@@ -117,7 +118,7 @@ def plotHeatMap(shape, out_path, patient, cond=None) :
 
 
 # Plots the shape with its medial axis and centroid
-def plotRefObjects(shape, out_path, patient=None, cond=None) :
+def plotRefObjects(shape, out_path, patient=None, cond=None, task=None) :
 
     print "Plotting {0}".format(shape.name)
 
@@ -154,7 +155,7 @@ def plotRefObjects(shape, out_path, patient=None, cond=None) :
 
 
 # Plots the mapped shape pairs produced by map_shape_pairs
-def plotMappedShapes(shape_to, out_path, patient, cond=None) :
+def plotMappedShapes(shape_to, out_path, patient, cond=None, task=None) :
 
     if shape_to.pair_mapping is None :
         print "Error in plotMappedShapes() : list of single shape names. Please use a list of shape pairs."

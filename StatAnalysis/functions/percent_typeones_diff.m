@@ -1,10 +1,14 @@
-function [five_pct, two_pct, ts] = percent_typeones_diff(pdf, n, num_trials)
+function [five_pct, two_pct, ts] = percent_typeones_diff(pdf_a, pdf_b, n, num_trials)
 %percent_typeones_diff Percent Type I errors, differences in paired t-tests
 % Note: as this funciton is vectorised use for small n 
 % (requires [64 x n x num_trials] bytes)
 
-% Generate pairs of random samples from Beta PDF
-rands_beta_a = random(pdf, [num_trials, n+1, 2]);
+% Generate pairs of random samples from Beta PDFs
+rands_beta_a = random(pdf_a, [num_trials, n+1]);
+rands_beta_b = random(pdf_b, [num_trials, n+1]);
+
+% Append rands from PDF B to rands from PDF A
+rands_beta_a(:,:,2) = rands_beta_b;
 
 % Calculate Crawford t-scores for each sample pair, get t-score differences
 means = squeeze(mean(rands_beta_a(:, 1:end-1,:), 2));
