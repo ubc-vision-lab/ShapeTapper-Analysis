@@ -98,7 +98,7 @@ class ShapeIO :
                 # Load observed touchpoint data
                 shape.observed = self.__loadObs(shape, patient, task)
                 # Load uniform generated data (returns None if empty)
-                shape.uniform  = self.__loadUnif(shape, patient, cond)
+                shape.uniform  = self.__loadUnif(shape, patient, cond, task)
 
             elif self.itertype == "Pairs" :
                 shape_from = shape[0]
@@ -109,7 +109,7 @@ class ShapeIO :
                 # Load transformed observed touchpoint data from shape_from to shape
                 shape.observed = self.__loadShapeObsPair(shape_from, shape, patient, task)
                 # Load uniform generated data (returns None if empty)
-                shape.uniform  = self.__loadUnif(shape, patient, cond)
+                shape.uniform  = self.__loadUnif(shape, patient, cond, task)
 
             # Apply function to shape; 
             # patient and cond default to None in functions which do not use them
@@ -155,12 +155,16 @@ class ShapeIO :
 
 
     # Load generated uniform point MAT file to shape
-    def __loadUnif(self, shape, patient, cond) :
+    def __loadUnif(self, shape, patient, cond, task=None) :
         if patient is None or cond is None : return None
         
         # Generate uniform MAT filename
-        unif_path  = os.path.join(self.in_path, patient, "uniform_points", cond)
-        unif_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond)) + ".mat"
+        if task is None :
+            unif_path  = os.path.join(self.in_path, patient, "uniform_points", cond)
+            unif_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond)) + ".mat"
+        else :
+            unif_path  = os.path.join(self.in_path, patient, "uniform_points", cond, task)
+            unif_fname = "_".join((shape.name, "Patient", patient, "uniform_points", cond, task)) + ".mat"
 
         # If loadMat is successfull, then add uniform data to shape object
         unif_mat = self.__loadMat(unif_path, unif_fname)

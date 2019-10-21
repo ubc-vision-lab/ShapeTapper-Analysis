@@ -16,6 +16,9 @@ from bayesian_analysis import bayesianAnalysis
 ################## Globals - CHANGE THESE #######################################
 img_names = ["blake_01","blake_03","blake_04","blake_06","blake_07",
              "blake_08","blake_09","blake_10","blake_11","blake_12"]
+             
+# img_names = ["blake_01","blake_04","blake_07",
+#              "blake_10","blake_11","blake_12"]
 
 ### DF pairs
 # img_names  = [ ["blake_04","blake_07"],
@@ -55,9 +58,18 @@ conditions = ["in_shape", "bounding_circle"]
 
 tasks = None
 # tasks = ["Simultaneous_2AFC","Sequential_2AFC","Oddball","N_Back"]
+# tasks = ["Simultaneous_2AFC","Sequential_2AFC","Oddball","N_Back"]
+# tasks = ['LR_167ms','LR_233ms','LR_500ms','LR_10000ms','OB_167ms','OB_233ms','OB_500ms','OB_10000ms']
 
 # patients   = ["MC1", "MC2"]
-patients   = ["DF","MC"]
+# patients   = ["DF","MC"]
+
+# patients = ['S01','S02']
+# patients = ['S03','S04']
+# patients = ['S05','S06']
+# patients = ['S07','S08']
+# patients = ['S09','S10']
+# patients = ['S11','S12','S13']
 
 # patients = ['S01','S02','S03','S04','S05','S06']
 # patients = ['S07','S08','S09','S10','S11','S12']
@@ -79,11 +91,11 @@ patients   = ["DF","MC"]
 #             'S43','S44','S45','S46','S47','S48',
 #             'S49','S50','S51','S52','S53','S54']
 
-in_path  = "D:\\ShapeTapper-Analysis\\" # where shape info and subject touch points are held
-out_path = "D:\\ShapeTapper-Analysis\\" # where data and analysis files should be output
+# in_path  = "D:\\ShapeTapper-Analysis\\" # where shape info and subject touch points are held
+# out_path = "D:\\ShapeTapper-Analysis\\" # where data and analysis files should be output
 
-# in_path  = "E:\\ShapeTapper-Analysis\\" # where shape info and subject touch points are held
-# out_path = "E:\\ShapeTapper-Analysis\\" # where data and analysis files should be output
+in_path  = "E:\\ShapeTapper-Analysis\\" # where shape info and subject touch points are held
+out_path = "E:\\ShapeTapper-Analysis\\" # where data and analysis files should be output
 
 
 if __name__ == '__main__':
