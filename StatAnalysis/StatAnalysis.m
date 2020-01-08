@@ -1,27 +1,36 @@
 clear
 
-patients = {'DF','MC',...
-            'S01','S02','S03','S04','S05','S06',...
+% patients = {'DF','MC',...
+%             'S01','S02','S03','S04','S05','S06',...
+%             'S07','S08','S09','S10','S11','S12',...
+%             'S13','S14','S15','S16','S17','S18',...
+%             'S19','S20','S21','S22','S23','S24',...
+%             'S25','S26','S27','S28','S29','S30',...
+%             'S31','S32','S33','S34','S35','S36',... 
+%             'S37','S38','S39','S40','S41','S42',...
+%             'S43','S44','S45','S46','S47','S48',...
+%             'S49','S50','S51','S52','S53','S54'};
+        
+patients = {'S01','S02','S03','S04','S05','S06',...
             'S07','S08','S09','S10','S11','S12',...
             'S13','S14','S15','S16','S17','S18',...
             'S19','S20','S21','S22','S23','S24',...
             'S25','S26','S27','S28','S29','S30',...
             'S31','S32','S33','S34','S35','S36',... 
-            'S37','S38','S39','S40','S41','S42',...
-            'S43','S44','S45','S46','S47','S48',...
-            'S49','S50','S51','S52','S53','S54'};
+            'S37','S38','S39','S40'};
 
 % patients = {'DF'};
 num_patients = length(patients);
 
 analysis_conds = {'in_shape','bounding_circle'};
 
-tasks = {};
+tasks = {'1','2','3','4'};
 % tasks = {'Simultaneous_2AFC','Sequential_2AFC','Oddball','N_Back'};
 
-shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07',...
-          'blake_08','blake_09','blake_10','blake_11','blake_12'};
+% shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07',...
+%           'blake_08','blake_09','blake_10','blake_11','blake_12'};
       
+shapes = {"blake_01","blake_04","blake_07","blake_10","blake_11","blake_12"};   
 num_shapes = length(shapes);
 
 % Allocate structs for all subjs summary
@@ -59,13 +68,13 @@ for c=1:length(analysis_conds)
         
             if isempty(tasks)
                 fprintf('Starting %s, %s, %s', patients{p}, analysis_conds{c});
-                in_path  = ['D:\ShapeTapper-Analysis\' patients{p} '\spatial_analysis\' analysis_conds{c} '\'];
+                in_path  = ['C:\ShapeTapper-Analysis\' patients{p} '\spatial_analysis\' analysis_conds{c} '\'];
             else
                 fprintf('Starting %s, %s', patients{p}, analysis_conds{c}, tasks{t});
-                in_path  = ['D:\ShapeTapper-Analysis\' patients{p} '\spatial_analysis\' analysis_conds{c} '\' tasks{t} '\'];
+                in_path  = ['C:\ShapeTapper-Analysis\' patients{p} '\spatial_analysis\' analysis_conds{c} '\' tasks{t} '\'];
             end
             
-            out_path = ['D:\ShapeTapper-Analysis\' patients{p} '\spatial_analysis\'];
+            out_path = ['C:\ShapeTapper-Analysis\' patients{p} '\spatial_analysis\'];
 
             if ~exist(out_path, 'dir')
                 mkdir(out_path);
@@ -104,7 +113,7 @@ for c=1:length(analysis_conds)
                 end
                 
                 try
-                    data = load(spat_file);
+                    data = load(strjoin(spat_file,''));
                 catch
                     continue
                 end
@@ -118,13 +127,30 @@ for c=1:length(analysis_conds)
 %                 centroid_var(i) = KernelDistApproximator(data.uniform_centroid_data(1,:)', data.observed_centroid_data(1)); % variance
 %                 centroid_amd(i) = KernelDistApproximator(data.uniform_centroid_data(3,:)', data.observed_centroid_data(3)); % amd    
 
-                ma_dist_std(i)   = std(data.uniform_medaxis_data(3,:),[],2);
-                ma_dist_avg(i)   = mean(data.uniform_medaxis_data(3,:),2);
-                edge_dist_std(i) = std(data.uniform_edge_data(3,:),[],2); 
-                edge_dist_avg(i) = mean(data.uniform_edge_data(3,:),2);
-                cent_dist_std(i) = std(data.uniform_centroid_data(3,:),[],2); 
-                cent_dist_avg(i) = mean(data.uniform_centroid_data(3,:),2);
-
+                if isempty(data.uniform_medaxis_data)
+                    ma_dist_std(i) = NaN;
+                    ma_dist_avg(i) = NaN;
+                else
+                    ma_dist_std(i) = nanstd(data.uniform_medaxis_data(3,:),[],2);
+                    ma_dist_avg(i) = nanmean(data.uniform_medaxis_data(3,:),2);
+                end
+                    
+                if isempty(data.uniform_edge_data)
+                    edge_dist_std(i) = NaN;
+                    edge_dist_avg(i) = NaN;
+                else
+                    edge_dist_std(i) = nanstd(data.uniform_edge_data(3,:),[],2);
+                    edge_dist_avg(i) = nanmean(data.uniform_edge_data(3,:),2);
+                end
+                
+                if isempty(data.uniform_centroid_data)
+                    cent_dist_std(i) = NaN;
+                    cent_dist_avg(i) = NaN;
+                else
+                    cent_dist_std(i) = nanstd(data.uniform_centroid_data(3,:),[],2); 
+                    cent_dist_avg(i) = nanmean(data.uniform_centroid_data(3,:),2);
+                end
+                    
                 if isempty(data.observed_medaxis_data)
                     ma_dist_obs(i) = NaN;
                     ma_dist_obs_var(i) = NaN;
@@ -179,9 +205,9 @@ for c=1:length(analysis_conds)
 %                 ma_dmaxdev_avg(i)   = gen_ma.dmaxdev_avg;
 %                 edge_dmaxdev_avg(i) = gen_edge.dmaxdev_avg;
 %                 cent_dmaxdev_avg(i) = gen_cent.dmaxdev_avg;
-%                 ma_dmaxdev_std(i)   = gen_ma.dmaxdev_std;
-%                 edge_dmaxdev_std(i) = gen_edge.dmaxdev_std;
-%                 cent_dmaxdev_std(i) = gen_cent.dmaxdev_std;
+%                 ma_dmaxdev_nanstd(i)   = gen_ma.dmaxdev_nanstd;
+%                 edge_dmaxdev_nanstd(i) = gen_edge.dmaxdev_nanstd;
+%                 cent_dmaxdev_nanstd(i) = gen_cent.dmaxdev_nanstd;
 
 %                 medaxis_dplus(i)   = KernelDistApproximator(gen_ma.dplus, obs_ma.dplus);
 %                 medaxis_dminus(i)  = KernelDistApproximator(gen_ma.dminus, obs_ma.dminus);
@@ -193,19 +219,42 @@ for c=1:length(analysis_conds)
 %                 medaxis_result(i)  = get_cdf_result(medaxis_dplus(i), medaxis_dminus(i), data.medaxis_cdf_obs_r(1), data.medaxis_cdf_obs_r(2));
 %                 edge_result(i)     = get_cdf_result(edge_dplus(i), edge_dminus(i), data.edge_cdf_obs_r(1), data.edge_cdf_obs_r(2));
 %                 centroid_result(i) = get_cdf_result(centroid_dplus(i), centroid_dminus(i), data.centroid_cdf_obs_r(1), data.centroid_cdf_obs_r(2));
-
-                ma_dplus_std(i)    = std(data.medaxis_cdf_gen(1,:));
-                ma_dplus_avg(i)    = mean(data.medaxis_cdf_gen(1,:));
-                ma_dminus_std(i)   = std(data.medaxis_cdf_gen(2,:));
-                ma_dminus_avg(i)   = mean(data.medaxis_cdf_gen(2,:));
-                edge_dplus_std(i)  = std(data.edge_cdf_gen(1,:));
-                edge_dplus_avg(i)  = mean(data.edge_cdf_gen(1,:));
-                edge_dminus_std(i) = std(data.edge_cdf_gen(2,:));
-                edge_dminus_avg(i) = mean(data.edge_cdf_gen(2,:));
-                cent_dplus_std(i)  = std(data.centroid_cdf_gen(1,:));
-                cent_dplus_avg(i)  = mean(data.centroid_cdf_gen(1,:));
-                cent_dminus_std(i) = std(data.centroid_cdf_gen(2,:));
-                cent_dminus_avg(i) = mean(data.centroid_cdf_gen(2,:));
+                
+                if isempty(data.medaxis_cdf_gen)
+                    ma_dplus_std(i)  = NaN;
+                    ma_dplus_avg(i)  = NaN;
+                    ma_dminus_std(i) = NaN;
+                    ma_dminus_avg(i) = NaN;
+                else
+                    ma_dplus_std(i)  = nanstd(data.medaxis_cdf_gen(1,:));
+                    ma_dplus_avg(i)  = nanmean(data.medaxis_cdf_gen(1,:));
+                    ma_dminus_std(i) = nanstd(data.medaxis_cdf_gen(2,:));
+                    ma_dminus_avg(i) = nanmean(data.medaxis_cdf_gen(2,:));
+                end
+                
+                if isempty(data.edge_cdf_gen)
+                    edge_dplus_std(i)  = NaN;
+                    edge_dplus_avg(i)  = NaN;
+                    edge_dminus_std(i) = NaN;
+                    edge_dminus_avg(i) = NaN;
+                else
+                    edge_dplus_std(i)  = nanstd(data.edge_cdf_gen(1,:));
+                    edge_dplus_avg(i)  = nanmean(data.edge_cdf_gen(1,:));
+                    edge_dminus_std(i) = nanstd(data.edge_cdf_gen(2,:));
+                    edge_dminus_avg(i) = nanmean(data.edge_cdf_gen(2,:));
+                end
+                
+                if isempty(data.centroid_cdf_gen)
+                    cent_dplus_std(i)  = NaN;
+                    cent_dplus_avg(i)  = NaN;
+                    cent_dminus_std(i) = NaN;
+                    cent_dminus_avg(i) = NaN;
+                else
+                    cent_dplus_std(i)  = nanstd(data.centroid_cdf_gen(1,:));
+                    cent_dplus_avg(i)  = nanmean(data.centroid_cdf_gen(1,:));
+                    cent_dminus_std(i) = nanstd(data.centroid_cdf_gen(2,:));
+                    cent_dminus_avg(i) = nanmean(data.centroid_cdf_gen(2,:));
+                end
 
             end % shape loop
             fprintf('\n');
@@ -274,17 +323,17 @@ for c=1:length(analysis_conds)
         end % patient loop 
     
     %     all_column_names = {'Patient',...
-    %                         'MedialAxis_AMD_StdDev', 'MedialAxis_AMD_Mean', 'MedialAxis_AMD_Observed',...
-    %                         'Centroid_AMD_StdDev', 'Centroid_AMD_Mean', 'Centroid_AMD_Observed',...
-    %                         'Edge_AMD_StdDev', 'Edge_AMD_Mean', 'Edge_AMD_Observed',...
-    %                         'MedialAxis_Dplus_StdDev', 'MedialAxis_Dplus_Mean', 'MedialAxis_Dplus_Observed',...
-    %                         'MedialAxis_Dminus_StdDev', 'MedialAxis_Dminus_Mean', 'MedialAxis_Dminus_Observed',...
-    %                         'Centroid_Dplus_StdDev', 'Centroid_Dplus_Mean', 'Centroid_Dplus_Observed',...
-    %                         'Centroid_Dminus_StdDev', 'Centroid_Dminus_Mean', 'Centroid_Dminus_Observed',...
-    %                         'Edge_Dplus_StdDev', 'Edge_Dplus_Mean', 'Edge_Dplus_Observed',...
-    %                         'Edge_Dminus_StdDev', 'Edge_Dminus_Mean', 'Edge_Dminus_Observed',...
-    %                         'MedialAxis_DMaxDeviation_Mean', 'Centroid_DMaxDeviation_Mean', 'Edge_DMaxDeviation_Mean',...
-    %                         'MedialAxis_DMaxDeviation_StdDev', 'Centroid_DMaxDeviation_StdDev', 'Edge_DMaxDeviation_StdDev'}
+    %                         'MedialAxis_AMD_stdDev', 'MedialAxis_AMD_mean', 'MedialAxis_AMD_Observed',...
+    %                         'Centroid_AMD_stdDev', 'Centroid_AMD_mean', 'Centroid_AMD_Observed',...
+    %                         'Edge_AMD_stdDev', 'Edge_AMD_mean', 'Edge_AMD_Observed',...
+    %                         'MedialAxis_Dplus_stdDev', 'MedialAxis_Dplus_mean', 'MedialAxis_Dplus_Observed',...
+    %                         'MedialAxis_Dminus_stdDev', 'MedialAxis_Dminus_mean', 'MedialAxis_Dminus_Observed',...
+    %                         'Centroid_Dplus_stdDev', 'Centroid_Dplus_mean', 'Centroid_Dplus_Observed',...
+    %                         'Centroid_Dminus_stdDev', 'Centroid_Dminus_mean', 'Centroid_Dminus_Observed',...
+    %                         'Edge_Dplus_stdDev', 'Edge_Dplus_mean', 'Edge_Dplus_Observed',...
+    %                         'Edge_Dminus_stdDev', 'Edge_Dminus_mean', 'Edge_Dminus_Observed',...
+    %                         'MedialAxis_DMaxDeviation_mean', 'Centroid_DMaxDeviation_nanmean', 'Edge_DMaxDeviation_mean',...
+    %                         'MedialAxis_DMaxDeviation_stdDev', 'Centroid_DMaxDeviation_stdDev', 'Edge_DMaxDeviation_stdDev'}
     %     
         all_column_names = {'Patient',...
                             'MedialAxis_AMD_Observed','MedialAxis_Var_Observed',...
@@ -313,25 +362,25 @@ for c=1:length(analysis_conds)
         results_all.Properties.VariableNames = all_column_names;
     %   
         if isempty(tasks)
-            out_name_all = ['D:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_amd_var.xlsx'];
+            out_name_all = ['C:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_amd_var.xlsx'];
         else
-            out_name_all = ['D:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_' tasks{t} '_amd_var.xlsx'];
+            out_name_all = ['C:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_' tasks{t} '_amd_var.xlsx'];
         end
 
         writetable(results_all, out_name_all);
     %     
     %     results_allmeans = table(patients',...
-    %                         mean(all_ma.dist_std,2), mean(all_ma.dist_avg,2), mean(all_ma.obs_dist_avg,2),...
-    %                         mean(all_cent.dist_std,2), mean(all_cent.dist_avg,2), mean(all_cent.obs_dist_avg,2),... 
-    %                         mean(all_edge.dist_std,2), mean(all_edge.dist_avg,2), mean(all_edge.obs_dist_avg,2),...                       all_ma.dplus_std, all_ma.dplus_avg,...
-    %                         mean(all_ma.dplus_std,2), mean(all_ma.dplus_avg,2), mean(all_ma.obs_dplus,2),...    
-    %                         mean(all_ma.dminus_std,2), mean(all_ma.dminus_avg,2), mean(all_ma.obs_dminus,2),...
-    %                         mean(all_cent.dplus_std,2), mean(all_cent.dplus_avg,2), mean(all_cent.obs_dplus,2),...
-    %                         mean(all_cent.dminus_std,2), mean(all_cent.dminus_avg,2), mean(all_cent.obs_dminus,2),...
-    %                         mean(all_edge.dplus_std,2), mean(all_edge.dplus_avg,2), mean(all_edge.obs_dplus,2),...
-    %                         mean(all_edge.dminus_std,2), mean(all_edge.dminus_avg,2), mean(all_edge.obs_dminus,2),...
-    %                         mean(all_ma.dmaxdev_avg,2), mean(all_cent.dmaxdev_avg,2), mean(all_edge.dmaxdev_avg,2),...    
-    %                         mean(all_ma.dmaxdev_std,2), mean(all_cent.dmaxdev_std,2), mean(all_edge.dmaxdev_std,2));
+    %                         nanmean(all_ma.dist_std,2), nanmean(all_ma.dist_avg,2), nanmean(all_ma.obs_dist_avg,2),...
+    %                         nanmean(all_cent.dist_std,2), nanmean(all_cent.dist_avg,2), nanmean(all_cent.obs_dist_avg,2),... 
+    %                         nanmean(all_edge.dist_std,2), nanmean(all_edge.dist_avg,2), nanmean(all_edge.obs_dist_avg,2),...                       all_ma.dplus_nanstd, all_ma.dplus_avg,...
+    %                         nanmean(all_ma.dplus_std,2), nanmean(all_ma.dplus_avg,2), nanmean(all_ma.obs_dplus,2),...    
+    %                         nanmean(all_ma.dminus_std,2), nanmean(all_ma.dminus_avg,2), nanmean(all_ma.obs_dminus,2),...
+    %                         nanmean(all_cent.dplus_std,2), nanmean(all_cent.dplus_avg,2), nanmean(all_cent.obs_dplus,2),...
+    %                         nanmean(all_cent.dminus_std,2), nanmean(all_cent.dminus_avg,2), nanmean(all_cent.obs_dminus,2),...
+    %                         nanmean(all_edge.dplus_std,2), nanmean(all_edge.dplus_avg,2), nanmean(all_edge.obs_dplus,2),...
+    %                         nanmean(all_edge.dminus_std,2), nanmean(all_edge.dminus_avg,2), nanmean(all_edge.obs_dminus,2),...
+    %                         nanmean(all_ma.dmaxdev_avg,2), nanmean(all_cent.dmaxdev_avg,2), nanmean(all_edge.dmaxdev_avg,2),...    
+    %                         nanmean(all_ma.dmaxdev_std,2), nanmean(all_cent.dmaxdev_std,2), nanmean(all_edge.dmaxdev_std,2));
 
         allmeans_column_names = {'Patient',...
                         'MedialAxis_DPlus_Observed','MedialAxis_DMinus_Observed',...
@@ -339,19 +388,49 @@ for c=1:length(analysis_conds)
                         'Edge_DPlus_Observed','Edge_DMinus_Observed'};
     
         results_allmeans = table(patients',...
-                            mean(all_ma.obs_dplus,2),mean(all_ma.obs_dminus,2),...
-                            mean(all_cent.obs_dplus,2),mean(all_cent.obs_dminus,2),...
-                            mean(all_edge.obs_dplus,2),mean(all_edge.obs_dminus,2));
+                            nanmean(all_ma.obs_dplus,2),nanmean(all_ma.obs_dminus,2),...
+                            nanmean(all_cent.obs_dplus,2),nanmean(all_cent.obs_dminus,2),...
+                            nanmean(all_edge.obs_dplus,2),nanmean(all_edge.obs_dminus,2));
        
         results_allmeans.Properties.VariableNames = allmeans_column_names;
 
         if isempty(tasks)
-            out_name_means = ['D:\ShapeTapper-Analysis\Stats_allparts_shapemeans_' analysis_conds{c} '_dplus_dminus.xlsx'];
+            out_name_means = ['C:\ShapeTapper-Analysis\Stats_allparts_shapemeans_' analysis_conds{c} '_dplus_dminus.xlsx'];
         else
-            out_name_means = ['D:\ShapeTapper-Analysis\Stats_allparts_shapemeans_' analysis_conds{c} '_' tasks{t} '_dplus_dminus.xlsx'];
+            out_name_means = ['C:\ShapeTapper-Analysis\Stats_allparts_shapemeans_' analysis_conds{c} '_' tasks{t} '_dplus_dminus.xlsx'];
         end
     
         writetable(results_allmeans, out_name_means);
+        
+        
+    %     results_all = table(patients',...
+    %                         all_ma.dist_std, all_ma.dist_avg, all_ma.obs_dist_avg,...
+    %                         all_cent.dist_std, all_cent.dist_avg, all_cent.obs_dist_avg,...
+    %                         all_edge.dist_std, all_edge.dist_avg, all_edge.obs_dist_avg,...
+    %                         all_ma.dplus_std, all_ma.dplus_avg, all_ma.obs_dplus,...
+    %                         all_ma.dminus_std, all_ma.dminus_avg, all_ma.obs_dminus,...
+    %                         all_cent.dplus_std, all_cent.dplus_avg, all_cent.obs_dplus,...
+    %                         all_cent.dminus_std, all_cent.dminus_avg, all_cent.obs_dminus,...
+    %                         all_edge.dplus_std, all_edge.dplus_avg, all_edge.obs_dplus,...
+    %                         all_edge.dminus_std, all_edge.dminus_avg, all_edge.obs_dminus,...
+    %                         all_ma.dmaxdev_avg, all_cent.dmaxdev_avg, all_edge.dmaxdev_avg,...
+    %                         all_ma.dmaxdev_std, all_cent.dmaxdev_std, all_edge.dmaxdev_std);
+
+        results_all_d = table(patients',...
+                            all_ma.obs_dplus,all_ma.obs_dminus,...
+                            all_cent.obs_dplus,all_cent.obs_dminus,...
+                            all_edge.obs_dplus,all_edge.obs_dminus);
+
+
+        results_all_d.Properties.VariableNames = allmeans_column_names;
+    %   
+        if isempty(tasks)
+            out_name_all_d = ['C:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_dplus_dminus.xlsx'];
+        else
+            out_name_all_d = ['C:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_' tasks{t} '_dplus_dminus.xlsx'];
+        end
+
+        writetable(results_all_d, out_name_all_d);
 
     end % task loop
 

@@ -108,10 +108,16 @@ def plotHeatMap(shape, out_path, patient, cond=None, task=None) :
         cv2.circle( heat_map, tuple(e), line_width, (0,0,0,255), thickness=-1, lineType=cv2.LINE_AA )
 
     # Generate output file name
-    if shape.pair_mapping is not None :
-        out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, 'heat_map.png'))
+    if task is None:
+        if shape.pair_mapping is not None :
+            out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, 'heat_map.png'))
+        else :
+            out_fname = "_".join((shape.name, "Patient", patient, 'heat_map.png'))
     else :
-        out_fname = "_".join((shape.name, "Patient", patient, 'heat_map.png'))
+        if shape.pair_mapping is not None :
+            out_fname = "_".join((shape.pair_mapping, "to", shape.name, "Patient", patient, task, '_heat_map.png'))
+        else :
+            out_fname = "_".join((shape.name, "Patient", patient, task, 'heat_map.png'))
 
     # Save heat_map as PNG
     cv2.imwrite( os.path.join(out_path,out_fname), heat_map )
