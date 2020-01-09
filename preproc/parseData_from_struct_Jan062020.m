@@ -25,7 +25,7 @@ tasks = {'1','2','3','4'};
 % in_path  = 'D:\ShapeTapper-Analysis\';
 out_path = 'C:\ShapeTapper-Analysis\';
 
-load('tps.mat')
+load('tps.mat') % add whichever MAT file contains "A" here.
 
 for p=1:length(patients)
     
