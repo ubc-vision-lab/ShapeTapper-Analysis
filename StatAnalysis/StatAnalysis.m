@@ -13,24 +13,25 @@ clear
         
 patients = {'S01','S02','S03','S04','S05','S06',...
             'S07','S08','S09','S10','S11','S12',...
-            'S13','S14','S15','S16','S17','S18',...
-            'S19','S20','S21','S22','S23','S24',...
-            'S25','S26','S27','S28','S29','S30',...
-            'S31','S32','S33','S34','S35','S36',... 
-            'S37','S38','S39','S40'};
+            'S13','S14','S15','S16','S17'}; %,'S18',...
+%             'S19','S20','S21','S22','S23','S24',...
+%             'S25','S26','S27','S28','S29','S30',...
+%             'S31','S32','S33','S34','S35','S36',... 
+%             'S37','S38','S39','S40'};
 
 % patients = {'DF'};
 num_patients = length(patients);
 
 analysis_conds = {'in_shape','bounding_circle'};
 
-tasks = {'1','2','3','4'};
+tasks = {'1','2'};
 % tasks = {'Simultaneous_2AFC','Sequential_2AFC','Oddball','N_Back'};
 
 % shapes = {'blake_01','blake_03','blake_04','blake_06','blake_07',...
 %           'blake_08','blake_09','blake_10','blake_11','blake_12'};
       
-shapes = {"blake_01","blake_04","blake_07","blake_10","blake_11","blake_12"};   
+shapes = {"blake_01","blake_04","blake_06","blake_07",...
+          "blake_08","blake_10","blake_11","blake_12"};   
 num_shapes = length(shapes);
 
 % Allocate structs for all subjs summary
@@ -42,6 +43,12 @@ all_cent = struct();
 [all_ma.dist_std, all_ma.dist_avg] = deal(zeros(num_patients,num_shapes));
 [all_edge.dist_std, all_edge.dist_avg] = deal(zeros(num_patients,num_shapes));
 [all_cent.dist_std, all_cent.dist_avg] = deal(zeros(num_patients,num_shapes));
+
+diffs = struct();
+[diffs.gen_diff_edge_minus_ma_dist_std, diffs.gen_diff_edge_minus_ma_dist_avg] = deal(zeros(num_patients,num_shapes));
+[diffs.gen_diff_cent_minus_ma_dist_std, diffs.gen_diff_cent_minus_ma_dist_avg] = deal(zeros(num_patients,num_shapes));
+[diffs.gen_diff_edge_minus_cent_dist_std, diffs.gen_diff_edge_minus_cent_dist_avg] = deal(zeros(num_patients,num_shapes));
+[diffs.obs_diff_edge_minus_ma_dist, diffs.obs_diff_cent_minus_ma_dist, diffs.obs_diff_edge_minus_cent_dist] = deal(zeros(num_patients,num_shapes));
 
 [all_ma.obs_dist_var, all_ma.obs_dist_avg] = deal(zeros(num_patients,num_shapes));
 [all_edge.obs_dist_var, all_edge.obs_dist_avg] = deal(zeros(num_patients,num_shapes));
@@ -86,6 +93,11 @@ for c=1:length(analysis_conds)
             [edge_dist_std, edge_dist_avg] = deal(zeros(num_shapes,1));
             [cent_dist_std, cent_dist_avg] = deal(zeros(num_shapes,1));
 
+            [diff_edge_minus_ma_dist_std, diff_edge_minus_ma_dist_avg] = deal(zeros(num_shapes,1));
+            [diff_cent_minus_ma_dist_std, diff_cent_minus_ma_dist_avg] = deal(zeros(num_shapes,1));
+            [diff_edge_minus_cent_dist_std, diff_edge_minus_cent_dist_avg] = deal(zeros(num_shapes,1));
+            [diff_edge_minus_ma_dist_obs, diff_cent_minus_ma_dist_obs, diff_edge_minus_cent_dist_obs] = deal(zeros(num_shapes,1));
+            
             [ma_dist_obs, edge_dist_obs, cent_dist_obs] = deal(zeros(num_shapes,1));
             [ma_dist_obs_var, edge_dist_obs_var, cent_dist_obs_var] = deal(zeros(num_shapes,1));
 
@@ -119,7 +131,104 @@ for c=1:length(analysis_conds)
                 end
 
                 n(i) = data.n_points;
+                
+                amd_out_path = ['C:\ShapeTapper-Analysis\AMD\'];
+                if ~exist(amd_out_path, 'dir')
+                    mkdir(amd_out_path);
+                end
+                amd_diff_out_name = strjoin([shapes{i} '_Patient_' patients{p} '_' analysis_conds{c} '_Task_' tasks{t} '_amd_diff.mat'],'');
 
+                centroid_amds_obs = NaN;
+                centroid_amds_gen = NaN;
+                medaxis_amds_obs = NaN;
+                medaxis_amds_gen = NaN;
+                edge_amds_obs = NaN;
+                edge_amds_gen = NaN;
+               
+                if ~isempty(data.observed_edge_data)
+                    edge_amds_obs = data.observed_edge_data(3);
+                end
+                if ~isempty(data.observed_medaxis_data)
+                    medaxis_amds_obs = data.observed_medaxis_data(3);
+                end
+                if ~isempty(data.observed_centroid_data)
+                    centroid_amds_obs = data.observed_centroid_data(3);
+                end
+                
+                if ~isempty(data.uniform_edge_data)
+                    edge_amds_gen = data.uniform_edge_data(3,:);
+                end
+                if ~isempty(data.uniform_medaxis_data)
+                    medaxis_amds_gen = data.uniform_medaxis_data(3,:);
+                end
+                if ~isempty(data.uniform_centroid_data)
+                    centroid_amds_gen = data.uniform_centroid_data(3,:);
+                end
+                
+                if isempty(data.observed_medaxis_data) ||  isempty(data.observed_centroid_data)
+                    amd_diff_cent_minus_medaxis_obs = NaN;
+                    diff_cent_minus_ma_dist_obs(i) = NaN;
+                else
+                    amd_diff_cent_minus_medaxis_obs = centroid_amds_obs - medaxis_amds_obs;
+                    diff_cent_minus_ma_dist_obs(i) = amd_diff_cent_minus_medaxis_obs;
+                end
+                if isempty(data.uniform_centroid_data) || isempty(data.uniform_medaxis_data)
+                    amd_diff_cent_minus_medaxis_gen = NaN;
+                    diff_cent_minus_ma_dist_avg(i) = NaN;
+                    diff_cent_minus_ma_dist_std(i) = NaN;
+                else
+                    amd_diff_cent_minus_medaxis_gen = centroid_amds_gen - medaxis_amds_gen;
+                    diff_cent_minus_ma_dist_avg(i) = nanmean(amd_diff_cent_minus_medaxis_gen);
+                    diff_cent_minus_ma_dist_std(i) = nanstd(amd_diff_cent_minus_medaxis_gen);
+                end
+                
+                if isempty(data.observed_medaxis_data) ||  isempty(data.observed_edge_data)
+                    amd_diff_edge_minus_medaxis_obs = NaN;
+                    diff_edge_minus_ma_dist_obs(i) = NaN;
+                else
+                    amd_diff_edge_minus_medaxis_obs = edge_amds_obs - medaxis_amds_obs;
+                    diff_edge_minus_ma_dist_obs(i) = amd_diff_edge_minus_medaxis_obs;
+                end
+                if isempty(data.uniform_edge_data) || isempty(data.uniform_medaxis_data)
+                    amd_diff_edge_minus_medaxis_gen = NaN;
+                    diff_edge_minus_ma_dist_avg(i) = NaN;
+                    diff_edge_minus_ma_dist_std(i) = NaN;
+                else
+                    amd_diff_edge_minus_medaxis_gen = edge_amds_gen - medaxis_amds_gen;
+                    diff_edge_minus_ma_dist_avg(i) = nanmean(amd_diff_edge_minus_medaxis_gen);
+                    diff_edge_minus_ma_dist_std(i) = nanstd(amd_diff_edge_minus_medaxis_gen);
+                end
+                
+                if isempty(data.observed_centroid_data) ||  isempty(data.observed_edge_data)
+                    amd_diff_edge_minus_cent_obs = NaN;
+                    diff_edge_minus_cent_dist_obs(i) = NaN;
+                else
+                    amd_diff_edge_minus_cent_obs = edge_amds_obs - centroid_amds_obs;
+                    diff_edge_minus_cent_dist_obs(i) = amd_diff_edge_minus_cent_obs;
+                end
+                if isempty(data.uniform_centroid_data) || isempty(data.uniform_edge_data)
+                    amd_diff_edge_minus_cent_gen = NaN;
+                    diff_edge_minus_cent_dist_avg(i) = NaN;
+                    diff_edge_minus_cent_dist_std(i) = NaN;
+                else
+                    amd_diff_edge_minus_cent_gen = edge_amds_gen - centroid_amds_gen;
+                    diff_edge_minus_cent_dist_avg(i) = nanmean(amd_diff_edge_minus_cent_gen);
+                    diff_edge_minus_cent_dist_std(i) = nanstd(amd_diff_edge_minus_cent_gen);
+                end
+                save(strjoin([amd_out_path amd_diff_out_name]),...
+                    'centroid_amds_obs',...
+                    'centroid_amds_gen',...
+                    'medaxis_amds_obs',...
+                    'medaxis_amds_gen',...
+                    'edge_amds_obs',...
+                    'edge_amds_gen',...
+                    'amd_diff_cent_minus_medaxis_obs',...
+                    'amd_diff_cent_minus_medaxis_gen',...
+                    'amd_diff_edge_minus_medaxis_obs',...
+                    'amd_diff_edge_minus_medaxis_gen',...
+                    'amd_diff_edge_minus_cent_obs',...
+                    'amd_diff_edge_minus_cent_gen');
+                
 %                 medaxis_var(i)  = KernelDistApproximator(data.uniform_medaxis_data(1,:)', data.observed_medaxis_data(1)); % variance
 %                 medaxis_amd(i)  = KernelDistApproximator(data.uniform_medaxis_data(3,:)', data.observed_medaxis_data(3)); % amd 
 %                 edge_var(i)     = KernelDistApproximator(data.uniform_edge_data(1,:)', data.observed_edge_data(1)); % variance
@@ -319,7 +428,18 @@ for c=1:length(analysis_conds)
             all_ma.dmaxdev_std(p,:)   = ma_dmaxdev_std;
             all_edge.dmaxdev_std(p,:) = edge_dmaxdev_std;
             all_cent.dmaxdev_std(p,:) = cent_dmaxdev_std;
+            
+            diffs.gen_diff_edge_minus_ma_dist_std(p,:) = diff_edge_minus_ma_dist_std;
+            diffs.gen_diff_edge_minus_ma_dist_avg(p,:) = diff_edge_minus_ma_dist_avg;
+            diffs.obs_diff_edge_minus_ma_dist(p,:) = diff_edge_minus_ma_dist_obs;
         
+            diffs.gen_diff_edge_minus_cent_dist_std(p,:) = diff_edge_minus_cent_dist_std;
+            diffs.gen_diff_edge_minus_cent_dist_avg(p,:) = diff_edge_minus_cent_dist_avg;
+            diffs.obs_diff_edge_minus_cent_dist(p,:) = diff_edge_minus_cent_dist_obs;
+            
+            diffs.gen_diff_cent_minus_ma_dist_std(p,:) = diff_cent_minus_ma_dist_std;
+            diffs.gen_diff_cent_minus_ma_dist_avg(p,:) = diff_cent_minus_ma_dist_avg;
+            diffs.obs_diff_cent_minus_ma_dist(p,:) = diff_cent_minus_ma_dist_obs;
         end % patient loop 
     
     %     all_column_names = {'Patient',...
@@ -368,7 +488,73 @@ for c=1:length(analysis_conds)
         end
 
         writetable(results_all, out_name_all);
-    %     
+
+        
+        
+        all_diff_column_names = {'Patient',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_1','Centroid_minus_MA_AMD_STDev_Uniform_1','Centroid_minus_MA_AMD_Observed_1',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_2','Centroid_minus_MA_AMD_STDev_Uniform_2','Centroid_minus_MA_AMD_Observed_2',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_3','Centroid_minus_MA_AMD_STDev_Uniform_3','Centroid_minus_MA_AMD_Observed_3',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_4','Centroid_minus_MA_AMD_STDev_Uniform_4','Centroid_minus_MA_AMD_Observed_4',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_5','Centroid_minus_MA_AMD_STDev_Uniform_5','Centroid_minus_MA_AMD_Observed_5',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_6','Centroid_minus_MA_AMD_STDev_Uniform_6','Centroid_minus_MA_AMD_Observed_6',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_7','Centroid_minus_MA_AMD_STDev_Uniform_7','Centroid_minus_MA_AMD_Observed_7',...
+                            'Centroid_minus_MA_AMD_Mean_Uniform_8','Centroid_minus_MA_AMD_STDev_Uniform_8','Centroid_minus_MA_AMD_Observed_8',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_1','Edge_minus_MA_AMD_STDev_Uniform_1','Edge_minus_MA_AMD_Observed_1',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_2','Edge_minus_MA_AMD_STDev_Uniform_2','Edge_minus_MA_AMD_Observed_2',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_3','Edge_minus_MA_AMD_STDev_Uniform_3','Edge_minus_MA_AMD_Observed_3',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_4','Edge_minus_MA_AMD_STDev_Uniform_4','Edge_minus_MA_AMD_Observed_4',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_5','Edge_minus_MA_AMD_STDev_Uniform_5','Edge_minus_MA_AMD_Observed_5',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_6','Edge_minus_MA_AMD_STDev_Uniform_6','Edge_minus_MA_AMD_Observed_6',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_7','Edge_minus_MA_AMD_STDev_Uniform_7','Edge_minus_MA_AMD_Observed_7',...
+                            'Edge_minus_MA_AMD_Mean_Uniform_8','Edge_minus_MA_AMD_STDev_Uniform_8','Edge_minus_MA_AMD_Observed_8',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_1','Edge_minus_Centroid_AMD_STDev_Uniform_1','Edge_minus_Centroid_AMD_Observed_1',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_2','Edge_minus_Centroid_AMD_STDev_Uniform_2','Edge_minus_Centroid_AMD_Observed_2',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_3','Edge_minus_Centroid_AMD_STDev_Uniform_3','Edge_minus_Centroid_AMD_Observed_3',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_4','Edge_minus_Centroid_AMD_STDev_Uniform_4','Edge_minus_Centroid_AMD_Observed_4',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_5','Edge_minus_Centroid_AMD_STDev_Uniform_5','Edge_minus_Centroid_AMD_Observed_5',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_6','Edge_minus_Centroid_AMD_STDev_Uniform_6','Edge_minus_Centroid_AMD_Observed_6',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_7','Edge_minus_Centroid_AMD_STDev_Uniform_7','Edge_minus_Centroid_AMD_Observed_7',...
+                            'Edge_minus_Centroid_AMD_Mean_Uniform_8','Edge_minus_Centroid_AMD_STDev_Uniform_8','Edge_minus_Centroid_AMD_Observed_8'};
+
+        results_all_diff = table(patients',...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,1), diffs.gen_diff_cent_minus_ma_dist_std(:,1), diffs.obs_diff_cent_minus_ma_dist(:,1),...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,2), diffs.gen_diff_cent_minus_ma_dist_std(:,2), diffs.obs_diff_cent_minus_ma_dist(:,2),...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,3), diffs.gen_diff_cent_minus_ma_dist_std(:,3), diffs.obs_diff_cent_minus_ma_dist(:,3),...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,4), diffs.gen_diff_cent_minus_ma_dist_std(:,4), diffs.obs_diff_cent_minus_ma_dist(:,4),...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,5), diffs.gen_diff_cent_minus_ma_dist_std(:,5), diffs.obs_diff_cent_minus_ma_dist(:,5),...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,6), diffs.gen_diff_cent_minus_ma_dist_std(:,6), diffs.obs_diff_cent_minus_ma_dist(:,6),...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,7), diffs.gen_diff_cent_minus_ma_dist_std(:,7), diffs.obs_diff_cent_minus_ma_dist(:,7),...
+                                 diffs.gen_diff_cent_minus_ma_dist_avg(:,8), diffs.gen_diff_cent_minus_ma_dist_std(:,8), diffs.obs_diff_cent_minus_ma_dist(:,8),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,1), diffs.gen_diff_edge_minus_ma_dist_std(:,1), diffs.obs_diff_edge_minus_ma_dist(:,1),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,2), diffs.gen_diff_edge_minus_ma_dist_std(:,2), diffs.obs_diff_edge_minus_ma_dist(:,2),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,3), diffs.gen_diff_edge_minus_ma_dist_std(:,3), diffs.obs_diff_edge_minus_ma_dist(:,3),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,4), diffs.gen_diff_edge_minus_ma_dist_std(:,4), diffs.obs_diff_edge_minus_ma_dist(:,4),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,5), diffs.gen_diff_edge_minus_ma_dist_std(:,5), diffs.obs_diff_edge_minus_ma_dist(:,5),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,6), diffs.gen_diff_edge_minus_ma_dist_std(:,6), diffs.obs_diff_edge_minus_ma_dist(:,6),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,7), diffs.gen_diff_edge_minus_ma_dist_std(:,7), diffs.obs_diff_edge_minus_ma_dist(:,7),...
+                                 diffs.gen_diff_edge_minus_ma_dist_avg(:,8), diffs.gen_diff_edge_minus_ma_dist_std(:,8), diffs.obs_diff_edge_minus_ma_dist(:,8),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,1), diffs.gen_diff_edge_minus_cent_dist_std(:,1), diffs.obs_diff_edge_minus_cent_dist(:,1),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,2), diffs.gen_diff_edge_minus_cent_dist_std(:,2), diffs.obs_diff_edge_minus_cent_dist(:,2),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,3), diffs.gen_diff_edge_minus_cent_dist_std(:,3), diffs.obs_diff_edge_minus_cent_dist(:,3),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,4), diffs.gen_diff_edge_minus_cent_dist_std(:,4), diffs.obs_diff_edge_minus_cent_dist(:,4),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,5), diffs.gen_diff_edge_minus_cent_dist_std(:,5), diffs.obs_diff_edge_minus_cent_dist(:,5),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,6), diffs.gen_diff_edge_minus_cent_dist_std(:,6), diffs.obs_diff_edge_minus_cent_dist(:,6),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,7), diffs.gen_diff_edge_minus_cent_dist_std(:,7), diffs.obs_diff_edge_minus_cent_dist(:,7),...
+                                 diffs.gen_diff_edge_minus_cent_dist_avg(:,8), diffs.gen_diff_edge_minus_cent_dist_std(:,8), diffs.obs_diff_edge_minus_cent_dist(:,8));
+
+        results_all_diff.Properties.VariableNames = all_diff_column_names;
+    %   
+        if isempty(tasks)
+            out_name_all_diff = ['C:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_amd_diffs.xlsx'];
+        else
+            out_name_all_diff = ['C:\ShapeTapper-Analysis\Stats_allparts_allshapes_' analysis_conds{c} '_' tasks{t} '_amd_diffs.xlsx'];
+        end
+
+        writetable(results_all_diff, out_name_all_diff);
+        
+        
+        %     
     %     results_allmeans = table(patients',...
     %                         nanmean(all_ma.dist_std,2), nanmean(all_ma.dist_avg,2), nanmean(all_ma.obs_dist_avg,2),...
     %                         nanmean(all_cent.dist_std,2), nanmean(all_cent.dist_avg,2), nanmean(all_cent.obs_dist_avg,2),... 
