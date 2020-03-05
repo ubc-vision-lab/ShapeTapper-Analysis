@@ -32,7 +32,9 @@ out_path = 'C:\ShapeTapper-Analysis\';
 % PIDs = unique(A(2:end,1));
 % [~,idx]=sort(upper(PIDs));
 % PIDs = PIDs(idx);
+% save('PIDs.mat',PIDs)
 
+% load('PIDs.mat')
 
 for p=1:length(patients)
     
@@ -42,9 +44,9 @@ for p=1:length(patients)
 
 
 %     dat = table(C1{1}, C1{2}, [cell2mat(C1(3)) cell2mat(C1(4))], 'VariableNames',{'OriginFileName','ImageName','XY'});
-    pid = PIDs{p};
+    pid = PIDs_Att_Exp{p};
 
-    p_dat = A(strcmp(A(:,1),pid),:);
+    p_dat = AttExp(strcmp(AttExp(:,1),pid),:);
 %     fnames = tps{p,1};  % odd matrix
 
     task_dat = cell2mat(p_dat(:,2));
